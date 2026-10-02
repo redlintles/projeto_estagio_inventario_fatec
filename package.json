@@ -1,0 +1,26 @@
+{
+  "name": "fatec-patrimonio",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "dev:backend": "npm run start:dev -w backend",
+    "dev:web": "npm run dev -w web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "prettier": "^3.9.9"
+  },
+  "overrides": {
+    "js-yaml": "5.4.2"
+  },
+  "dependencies": {
+    "js-yaml": "5.4.2"
+  }
+}

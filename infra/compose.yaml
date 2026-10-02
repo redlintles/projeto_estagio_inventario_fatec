@@ -1,0 +1,59 @@
+# Ambiente opcional de desenvolvimento. Não define a infraestrutura definitiva.
+services:
+  database:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: patrimonio
+      POSTGRES_USER: patrimonio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patrimonio -d patrimonio"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  mail:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:8025:8025"
+  backend:
+    build:
+      context: ..
+      dockerfile: infra/backend.Dockerfile
+    environment:
+      DATABASE_URL: postgresql://patrimonio:${POSTGRES_PASSWORD}@database:5432/patrimonio
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET}
+      WEB_ORIGIN: http://localhost:8080
+      UPLOAD_DIR: /app/uploads
+      SMTP_HOST: mail
+      SMTP_PORT: 1025
+      SMTP_FROM: patrimonio@fatec.local
+      BOOTSTRAP_EMAIL: ${BOOTSTRAP_EMAIL:-admin@fatec.local}
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:-}
+    depends_on:
+      database:
+        condition: service_healthy
+    volumes:
+      - photos:/app/uploads
+    ports:
+      - "3000:3000"
+    command:
+      [
+        "sh",
+        "-c",
+        "node ../node_modules/typeorm/cli.js migration:run -d dist/data-source.js && node dist/main.js",
+      ]
+  web:
+    build:
+      context: ..
+      dockerfile: infra/web.Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+volumes:
+  postgres_data:
+  photos:

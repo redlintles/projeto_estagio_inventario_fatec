@@ -1,0 +1,47 @@
+Projeto estágio.
+
+1- Problema:
+
+Gestão de ativos do estado. Na faculdade, mesas, cadeiras, computadores, etc são fornecidos pelo estado, cada um possuí um código de barras atribuído e cabe à equipe da diretoria gerenciar tais itens. são classificados como ativos aqueles itens que possuem um QR code associado, e como bens os itens que não o possuem.
+
+Junto com o envio dos ativos, uma planilha enviada pelo estado que cataloga todos eles também é enviada. junto com valor, data de incorporação, ID, tipo do ativo, etc. A gestão desses ativos é feita toda manualmente através de um leitor de código de barras improvisado e atualizações na planilha.
+
+Contudo, essa planilha não contém todas as informações necessárias sobre os itens para permitir a gestão eficiente. dados que seriam importantes são, a localização do ativo, o estado em que ele se encontra(estado em termos de fluxo (recebido, à caminho, disponível, etc). e o estado físico do item(quebrado ou em bom estado). isso dificulta a gestão dos ativos e causa problemas enormes.
+
+Além disso, eventualmente, ativos que estão sobrando podem ser enviados para outras unidades da faculdade. nesse caso elas devem ser colocadas como status "disponível" na tabela. e após, digamos 20 dias, se nenhuma outra unidade requisitar tais bens. o estado deverá ser atualizado para baixa, por serem bens do estado, eles não podem ser simplesmente descartados ao deixarem de cumprir sua função. 
+
+Se alguma unidade desejar os itens nesse período de 20 dias no entanto. o status deve então ser alterado para "requisitado" ou algo similar para demarcar isso, indicando que os ativos serão então enviados para outra unidade. após o transporte finalmente ser realizado, o status deve ser alterado novamente como "enviado" ou similar.
+
+Além disso, o projeto deve ser bem documentado para que outros possam fazer sua manutenção no futuro.
+
+A ideia proposta é usar a planilha enviada pelo governo como base, adicionar colunas à ela para facilitar a gestão interna da faculdade. bem como atualizar essa tabela no banco de dados eventualmente com uma nova versão dos dados enviados pelo governo, nesse caso, o funcionário responsável deve então ser capaz de decidir qual versão desejará manter em caso de conflito. ativo por ativo.
+
+Solução proposta:
+
+1- Uma API feita em NestJS+Typescript que permita esse gerenciamento detalhado que se comunica com um banco de dados o qual ainda não foi decidido. tudo que sei é que será um banco de dados relacional simples.
+
+2- Abandono total do leitor de código de barras em favor do celular do colaborador, que conterá um app feito em kotlin que lerá o código de barras através da câmera do celular e se comunicará com a API para atualizar o banco de dados. isso facilita a integração e melhora o controle.
+
+3- Um dashboard web acessado pelo computador que permita algum controle sobre os ativos para que os usuários possam então ter uma visão geral bem como gerenciar certas tarefas e acompanhar os dados.
+
+4- o App kotlin + Jetpack Compose, em caso de não haver internet deve registrar os dados localmente para que quando o celular voltar pra uma área com internet, o app faça a sincronização devida.
+
+5- Uma funcionalidade de inventário, que permita ao usuário scannear todos os ativos de uma dada sala sem precisar ficar preenchendo formulário a todo momento, apenas para confirmar a veracidade dos dados bem como informar ao sistema caso alguma movimentação irregular do ativo tenha sido realizada. 
+
+6- Num primeiro momento, um trabalho enorme terá de ser feito pelo colaborador a fim de catalogar todos os ativos no sistema, especialmente para preencher as novas colunas. 
+
+7- Em suma, o sistema, de forma bonita é um sistema de inventário, e de forma feia, uma planilha de excel glorificada gerida eletronicamente.
+
+Eu propûs uma boa solução pro projeto? Alunos irão fazer a manutenção de tal projeto depois que eu sair. Ele é completamente interno da unidade na qual estudei e não irá afetar as demais unidades. 
+
+
+
+
+
+
+
+
+
+
+
+
