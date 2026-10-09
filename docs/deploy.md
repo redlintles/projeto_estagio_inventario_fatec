@@ -1,6 +1,14 @@
 # Implantação e backup
 
-A escolha de hospedagem ainda não foi feita. Esta documentação descreve os contratos necessários para adaptar o sistema quando a instituição decidir.
+A hospedagem confirmada será em uma máquina interna da Fatec, na rede local compartilhada, sem VLANs. Portal e API permanecerão nesse servidor; os celulares precisarão alcançar a API pela rede da instituição. Endereço estável, HTTPS, acesso pelo Wi-Fi, SMTP e rotina de backup ainda precisam ser definidos e validados.
+
+## Servidor na rede interna da Fatec
+
+Reserve um endereço estável para a máquina, por reserva DHCP ou configuração acordada com o responsável pela rede. Configure um nome interno e HTTPS com certificado confiável nos celulares. O APK release recusa HTTP e não ignora erros de certificado. A API no aplicativo deverá apontar para `https://NOME_DO_SERVIDOR/api`; `localhost` no telefone identifica o próprio telefone.
+
+A ausência de VLANs não impede a integração, mas também não comprova acesso entre Wi-Fi e servidor: valide isolamento de clientes nos pontos de acesso e o firewall da máquina. Exponha o proxy HTTPS aos clientes autorizados; mantenha PostgreSQL e armazenamento de fotos sem acesso direto pela rede. Configure WEB_ORIGIN com a origem real do portal. A máquina precisa permanecer ligada durante o acesso e a sincronização.
+
+O comando `npm run demo` atende à apresentação local e publica portal e API somente em `127.0.0.1`. Para uma apresentação com celulares na mesma rede, `npm run demo:lan` publica a API por HTTP no IP do computador e mantém o banco e as credenciais. Esse modo é exclusivo da demonstração com APK debug e não configura a implantação institucional. Para os aparelhos operacionais, distribua APK release assinado e valide a atualização sem apagar pendências locais. Faça a conferência offline após preparar a base e o inventário online; ao reconectar, sincronize antes de encerrar a sessão de inventário.
 
 ## Sem contêiner
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -35,6 +36,8 @@ fun PatrimonioApp() {
   var message by remember { mutableStateOf("") }
   var busy by remember { mutableStateOf(false) }
   var tab by remember { mutableStateOf("Inventário") }
+  var accountMenu by remember { mutableStateOf(false) }
+  val contentScroll = rememberScrollState()
   var refresh by remember { mutableIntStateOf(0) }
   var assets by remember { mutableStateOf(store.snapshot("assets").objects()) }
   var locations by remember { mutableStateOf(store.snapshot("locations").objects()) }
@@ -104,14 +107,14 @@ fun PatrimonioApp() {
     inventories = data.getValue("inventories").objects()
   }
   fun lookup(value: String) {
-    code = value
+    code = value.trim()
     selected =
       assets.firstOrNull {
-        it.optString("patrimony") == value || it.optString("uniqueCode") == value
+        it.optString("patrimony") == code || it.optString("uniqueCode") == code
       }
     message =
-      if (selected == null) "Código não encontrado na base local. Atualize os dados com internet."
-      else ""
+      if (selected == null) "Código lido: $code. Nenhum ativo encontrado na base local. Atualize a base ou confira a etiqueta."
+      else "Ativo encontrado para o código $code."
     scanner = false
   }
   LaunchedEffect(logged) {
@@ -124,20 +127,79 @@ fun PatrimonioApp() {
     }
   }
   DisposableEffect(Unit) { onDispose { store.close() } }
-  Surface(modifier = Modifier.fillMaxSize()) {
-    Column(
-      Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
-      verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-      Text("Patrimônio Fatec", style = MaterialTheme.typography.headlineMedium)
+  LaunchedEffect(tab) { contentScroll.scrollTo(0) }
+  Scaffold(
+    topBar = {
+      Surface(tonalElevation = 2.dp) {
+        Row(
+          Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 20.dp, vertical = 12.dp),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+          Column(Modifier.weight(1f)) {
+            Text("Patrimônio Fatec", style = MaterialTheme.typography.titleLarge)
+            Text(if (logged) tab else "Acesso ao sistema", style = MaterialTheme.typography.bodyMedium)
+          }
+          if (logged) Box {
+            TextButton(onClick = { accountMenu = true }) { Text("Conta") }
+            DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
+              DropdownMenuItem(text = { Text("Sair da conta") }, onClick = {
+                accountMenu = false
+                session.token = ""
+                logged = false
+                assets = emptyList()
+                locations = emptyList()
+                units = emptyList()
+                inventories = emptyList()
+                store.clearSnapshots()
+                selected = null
+                scanner = false
+                inventoryId = ""
+                locationId = ""
+                message = "Sessão encerrada. Pendências preservadas para esta conta."
+              })
+            }
+          }
+        }
+      }
+    },
+    bottomBar = {
+      if (logged) NavigationBar {
+        listOf("Inventário" to "✓", "Ativo" to "▣", "Pendências" to "↻", "Ajuda" to "?").forEach { (name, symbol) ->
+          NavigationBarItem(
+            selected = tab == name,
+            onClick = { tab = name; scanner = false; message = "" },
+            icon = { Text(symbol, style = MaterialTheme.typography.titleLarge) },
+            label = { Text(name) },
+          )
+        }
+      }
+    },
+  ) { insets ->
+    Column(Modifier.fillMaxSize().padding(insets).imePadding()) {
+      if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+      if (message.isNotBlank()) Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+          Text(message, modifier = Modifier.weight(1f).padding(vertical = 10.dp), style = MaterialTheme.typography.bodyMedium)
+          TextButton(onClick = { message = "" }) { Text("Fechar") }
+        }
+      }
+      Column(
+        Modifier.weight(1f).verticalScroll(contentScroll).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+      ) {
       if (!logged) {
-        Text("Conecte-se antes de preparar o inventário.")
+        SectionHeading("Entrar na sua conta", "Conecte-se para baixar a base e preparar o inventário. As conferências poderão ser feitas offline depois.")
+        Text("Servidor", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
           url,
           { url = it },
           label = { Text("Endereço da API") },
           modifier = Modifier.fillMaxWidth(),
+          supportingText = { Text("Celular na rede: http://IP_DO_PC:3000/api. O endereço 10.0.2.2 é apenas para emulador.") },
+          singleLine = true,
         )
+        Text("Credenciais", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(
           email,
           { email = it },
@@ -152,6 +214,7 @@ fun PatrimonioApp() {
           modifier = Modifier.fillMaxWidth(),
         )
         Button(
+          modifier = Modifier.fillMaxWidth(),
           enabled = !busy,
           onClick = {
             work {
@@ -181,44 +244,31 @@ fun PatrimonioApp() {
           Text("Entrar")
         }
       } else {
-        Text("Dados locais: ${assets.size} ativos. Prepare a sala enquanto houver internet.")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          Button(
-            enabled = !busy,
-            onClick = {
-              work {
-                reload()
-                message = "Base local atualizada."
-              }
-            },
-          ) {
-            Text("Atualizar base")
-          }
-          OutlinedButton(
-            onClick = {
-              SyncWorker.schedule(context)
-              message = "Sincronização agendada. Consulte as pendências."
+        if (tab == "Inventário" || tab == "Ativo") {
+          SectionCard("Base e sincronização", "${assets.size} ativos salvos neste aparelho") {
+            Text("Atualize com conexão antes de iniciar a conferência.", style = MaterialTheme.typography.bodyMedium)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+              OutlinedButton(modifier = Modifier.weight(1f), enabled = !busy, onClick = {
+                work { reload(); message = "Base local atualizada." }
+              }) { Text("Atualizar base") }
+              OutlinedButton(modifier = Modifier.weight(1f), enabled = !busy, onClick = {
+                SyncWorker.schedule(context)
+                message = "Sincronização agendada. Consulte as pendências."
+              }) { Text("Sincronizar") }
             }
-          ) {
-            Text("Sincronizar")
           }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-          listOf("Inventário", "Ativo", "Pendências").forEach { name ->
-            FilterChip(
-              selected = tab == name,
-              onClick = {
-                tab = name
-                scanner = false
-              },
-              label = { Text(name) },
-            )
-          }
-        }
-        if (tab == "Pendências") {
+        if (tab == "Ajuda") {
+          MobileHelp()
+        } else if (tab == "Pendências") {
           @Suppress("UNUSED_VARIABLE") val revision = refresh
           val operations = store.operations(session.userId)
-          Text("${operations.count {it.state!="SYNCED"&&it.state!="DISCARDED"}} pendências")
+          SectionHeading("Acompanhar envios", "${operations.count {it.state!="SYNCED"&&it.state!="DISCARDED"}} pendências nesta conta. As conferências ficam salvas até o envio.")
+          Button(modifier = Modifier.fillMaxWidth(), onClick = {
+            SyncWorker.schedule(context)
+            message = "Sincronização agendada. Aguarde a atualização dos estados."
+          }) { Text("Sincronizar agora") }
+          if (operations.isEmpty()) Text("Nenhuma conferência registrada nesta conta. Comece pela aba Inventário.")
           operations.forEach { op ->
             Card(Modifier.fillMaxWidth()) {
               Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -226,13 +276,14 @@ fun PatrimonioApp() {
                   assets.find { it.optString("id") == op.assetId }?.optString("description")
                     ?: op.assetId
                 )
-                Text(op.state)
+                Text(syncStateLabel(op.state), style = MaterialTheme.typography.labelLarge)
                 if (op.error.isNotBlank()) Text(op.error)
                 if (op.state in listOf("CONFLICT", "ERROR")) {
                   Text(
                     "Revise os dados atuais antes de registrar uma nova conferência. A operação original permanece no histórico local."
                   )
                   OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                       store.state(op.id, "DISCARDED", op.error)
                       refresh++
@@ -246,9 +297,10 @@ fun PatrimonioApp() {
           }
         } else {
           if (tab == "Inventário") {
+            SectionCard("1 Preparar a conferência", "Selecione uma sala e um inventário aberto, ou crie um novo enquanto estiver online.") {
             SelectField(
               "Localização",
-              locations.map { it.getString("id") to it.getString("description") },
+              locations.filter { it.optBoolean("active") }.map { it.getString("id") to it.getString("description") },
               locationId,
             ) {
               locationId = it
@@ -256,6 +308,7 @@ fun PatrimonioApp() {
               selected = null
             }
             Button(
+              modifier = Modifier.fillMaxWidth(),
               enabled = !busy && locationId.isNotBlank() && session.role != "CONSULTA",
               onClick = {
                 work {
@@ -293,25 +346,33 @@ fun PatrimonioApp() {
                 inventories.find { i -> i.getString("id") == it }?.optString("locationId")
                   ?: locationId
             }
+            }
           }
-          Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          SectionCard(if (tab == "Inventário") "2 Identificar o bem" else "Consultar um ativo", "Digite o patrimônio ou leia a etiqueta pela câmera.") {
+          Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
               code,
               { code = it },
               label = { Text("Código de barras / patrimônio") },
               modifier = Modifier.weight(1f),
             )
-            Button(onClick = { lookup(code) }) { Text("Buscar") }
+            Button(enabled = code.isNotBlank() && !busy, onClick = { lookup(code) }) { Text("Buscar") }
           }
-          OutlinedButton(onClick = { scanner = !scanner }) {
+          OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { scanner = !scanner }) {
             Text(if (scanner) "Fechar câmera" else "Ler com câmera")
           }
-          if (scanner) BarcodeCamera(Modifier.fillMaxWidth().height(240.dp)) { lookup(it) }
+          if (scanner) {
+            Text("Enquadre o código inteiro, mantenha o aparelho firme e evite reflexos.", style = MaterialTheme.typography.bodyMedium)
+            BarcodeCamera(Modifier.fillMaxWidth().height(240.dp)) { lookup(it) }
+          }
+          }
+          if (selected == null && tab == "Ativo") Text("O resultado e as operações disponíveis aparecerão abaixo da busca.", style = MaterialTheme.typography.bodyMedium)
           selected?.let { asset ->
             Card(Modifier.fillMaxWidth()) {
               Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (tab == "Inventário") "3 Conferir e registrar" else "Dados do ativo", style = MaterialTheme.typography.labelLarge)
                 Text(asset.getString("description"), style = MaterialTheme.typography.titleLarge)
-                Text("Patrimônio ${asset.getString("patrimony")} · ${asset.getString("status")}")
+                Text("Patrimônio ${asset.getString("patrimony")} · ${assetStatusLabel(asset.getString("status"))}")
                 Text(
                   "Localização: ${locations.find {it.getString("id")==asset.optString("locationId")}?.optString("description")?:"Não definida"}"
                 )
@@ -336,9 +397,9 @@ fun PatrimonioApp() {
                     ) {
                       divergenceType = it
                     }
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                       Checkbox(checked = evaluated, onCheckedChange = { evaluated = it })
-                      Text("Avaliar condição física")
+                      Text("Avaliar condição física", modifier = Modifier.weight(1f))
                     }
                     if (evaluated) {
                       Text("Condição: $condition / 5")
@@ -354,11 +415,17 @@ fun PatrimonioApp() {
                         found,
                         { found = it },
                         label = { Text("Descrição encontrada") },
+                        modifier = Modifier.fillMaxWidth(),
                       )
-                      OutlinedTextField(notes, { notes = it }, label = { Text("Observação") })
+                      OutlinedTextField(notes, { notes = it }, label = { Text("Observação") }, modifier = Modifier.fillMaxWidth())
                     }
                   }
+                  if (tab == "Inventário" || asset.optString("status") == "A") {
+                  HorizontalDivider()
+                  Text("Foto do bem", style = MaterialTheme.typography.titleMedium)
+                  Text(if (tab == "Inventário") "Obrigatória para divergências; opcional na conferência correta." else "Registre uma foto para disponibilizar um ativo em uso.", style = MaterialTheme.typography.bodyMedium)
                   OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                       val dir = File(context.filesDir, "photos").apply { mkdirs() }
                       val file = File(dir, "${UUID.randomUUID()}.jpg")
@@ -375,8 +442,10 @@ fun PatrimonioApp() {
                   ) {
                     Text(if (photoPath == null) "Capturar foto" else "Foto registrada")
                   }
+                  }
                   if (tab == "Inventário")
                     Button(
+                      modifier = Modifier.fillMaxWidth(),
                       enabled =
                         inventoryId.isNotBlank() &&
                           !busy &&
@@ -423,8 +492,10 @@ fun PatrimonioApp() {
                       Text("Confirmar conferência")
                     }
                   if (tab == "Ativo") {
-                    Text("Movimentações exigem conexão e são validadas pelo servidor.")
+                    HorizontalDivider()
+                    SectionHeading("Operações do ativo", "As movimentações abaixo exigem conexão. As opções dependem do status do bem.")
                     if (asset.optString("status") == "A") {
+                      Text("Disponibilização", style = MaterialTheme.typography.titleMedium)
                       Text("Condição física: $condition / 5")
                       Slider(
                         value = condition.toFloat(),
@@ -433,6 +504,7 @@ fun PatrimonioApp() {
                         steps = 3,
                       )
                       Button(
+                        modifier = Modifier.fillMaxWidth(),
                         enabled = !busy && photoPath != null,
                         onClick = {
                           work {
@@ -457,6 +529,7 @@ fun PatrimonioApp() {
                       }
                     }
                     if (asset.optString("status") == "D") {
+                      Text("Reserva e transporte", style = MaterialTheme.typography.titleMedium)
                       SelectField(
                         "Unidade de destino",
                         units
@@ -467,6 +540,7 @@ fun PatrimonioApp() {
                         destination = it
                       }
                       Button(
+                        modifier = Modifier.fillMaxWidth(),
                         enabled = !busy && destination.isNotBlank(),
                         onClick = {
                           work {
@@ -487,7 +561,9 @@ fun PatrimonioApp() {
                       ) {
                         Text("Reservar para transferência")
                       }
+                      Text("Já existe uma reserva? Avance para transporte ou confirme a transferência conforme a etapa atual.", style = MaterialTheme.typography.bodyMedium)
                       Button(
+                        modifier = Modifier.fillMaxWidth(),
                         enabled = !busy,
                         onClick = {
                           work {
@@ -526,23 +602,8 @@ fun PatrimonioApp() {
             }
           }
         }
-        OutlinedButton(
-          onClick = {
-            session.token = ""
-            logged = false
-            assets = emptyList()
-            locations = emptyList()
-            units = emptyList()
-            inventories = emptyList()
-            store.clearSnapshots()
-            selected = null
-          }
-        ) {
-          Text("Sair (pendências preservadas para esta conta)")
-        }
       }
-      if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-      if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.primary)
+      }
     }
   }
 }
@@ -555,11 +616,11 @@ fun SelectField(
   onChange: (String) -> Unit,
 ) {
   var expanded by remember { mutableStateOf(false) }
-  Column {
+  Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
     Text(label, style = MaterialTheme.typography.labelLarge)
     Box {
       OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-        Text(options.find { it.first == value }?.second ?: "Selecione")
+        Text(options.find { it.first == value }?.second ?: if (options.isEmpty()) "Nenhuma opção disponível" else "Selecione")
       }
       DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
         options.forEach { (key, text) ->

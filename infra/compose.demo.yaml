@@ -1,0 +1,23 @@
+# Sobrescrita exclusiva da demonstração local, com volumes do projeto fatec-demo.
+services:
+  database:
+    ports: !override []
+  backend:
+    ports: !override
+      - "${DEMO_BIND_ADDRESS:-127.0.0.1}:3000:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+  web:
+    ports: !override
+      - "127.0.0.1:8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy

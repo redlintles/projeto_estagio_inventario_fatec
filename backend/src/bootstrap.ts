@@ -11,8 +11,13 @@ async function bootstrap() {
     );
   await dataSource.initialize();
   try {
-    if (await dataSource.getRepository(UserSchema).countBy({ role: "ADMIN" }))
+    if (await dataSource.getRepository(UserSchema).countBy({ role: "ADMIN" })) {
+      if (process.argv.includes("--if-needed")) {
+        console.log("Administrador já existe; credenciais preservadas.");
+        return;
+      }
       throw new Error("Já existe administrador. Use a gestão de usuários.");
+    }
     await dataSource.getRepository(UserSchema).insert({
       id: randomUUID(),
       name: "Administrador",

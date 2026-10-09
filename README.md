@@ -12,7 +12,25 @@ Sistema interno da unidade de ensino para importar a base patrimonial, conferir 
 | `docs/`    | Requisitos, arquitetura, contratos e manutenção         | Markdown                                      |
 | `infra/`   | Ambiente Docker opcional e proxy de exemplo             | Compose e Nginx                               |
 
-A implantação definitiva continua em aberto. É possível executar os componentes sem Docker, usar um PostgreSQL gerenciado ou hospedar em uma máquina da instituição. O ambiente Compose é uma opção de desenvolvimento, sem compromisso com uma infraestrutura específica.
+A hospedagem será em uma máquina interna da Fatec, na rede local compartilhada, sem VLANs. A configuração operacional de endereço estável, HTTPS e backup está descrita em `docs/deploy.md`. O ambiente Compose continua sendo uma opção de desenvolvimento e demonstração.
+
+## Demonstração com um comando
+
+Com Node.js 24 e Docker com Compose **2.24.4 ou superior** instalado e iniciado:
+
+```sh
+npm run demo
+```
+
+Não é necessário executar `npm ci` no computador nem editar arquivos `.env`. O comando compila o portal e a API, inicia PostgreSQL e Mailpit, aplica as migrations e cria o administrador. Ao terminar, exibe o endereço **http://localhost:8080**, o login e a senha gerada. A primeira execução precisa de internet para baixar as imagens e dependências.
+
+As credenciais ficam em `.demo/.env`, ignorado pelo Git. Executar novamente preserva as credenciais e os dados. O banco da demonstração usa volumes próprios do projeto Docker `fatec-demo`. O portal e a API ficam acessíveis apenas neste computador. As portas 3000, 8080 e 8025 precisam estar livres; pare outras instâncias do projeto antes de iniciar.
+
+```sh
+npm run demo:stop
+```
+
+Esse comando para os serviços e preserva os dados. O ambiente começa sem ativos cadastrados: entre com o administrador, cadastre as localizações e importe a base patrimonial pela interface. Para usar em produção, siga a configuração abaixo e o guia de implantação.
 
 ## Começar sem Docker
 
@@ -58,6 +76,14 @@ docker compose --env-file infra/.env -f infra/compose.yaml exec backend node dis
 ```
 
 Portal: `http://localhost:8080`. API na porta 3000. E-mails de desenvolvimento: `http://localhost:8025` (Mailpit, sem envio externo). Configure destinatários na tela Parâmetros. Esse exemplo usa HTTP para desenvolvimento; consulte `docs/deploy.md` antes de implantar.
+
+### Demonstração no celular pela rede local
+
+```sh
+npm run demo:lan
+```
+
+Este modo publica a API na rede local e exibe os endereços disponíveis para o celular. Use `http://IP_DO_PC:3000/api` no login do app debug, com ambos na mesma rede. O portal permanece em `http://localhost:8080`. Banco e credenciais são os mesmos da demo. Para retornar ao acesso somente local, execute `npm run demo`. O endereço `10.0.2.2` é exclusivo do emulador Android; no celular físico, use o IP do PC ou o encaminhamento USB descrito em `mobile/README.md`.
 
 ## Aplicativo Android
 

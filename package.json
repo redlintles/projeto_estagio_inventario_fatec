@@ -11,7 +11,10 @@
     "dev:backend": "npm run start:dev -w backend",
     "dev:web": "npm run dev -w web",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "demo": "node scripts/demo.mjs",
+    "demo:stop": "node scripts/demo.mjs stop",
+    "demo:lan": "node scripts/demo.mjs lan"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

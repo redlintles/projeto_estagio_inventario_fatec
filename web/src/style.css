@@ -91,6 +91,7 @@ aside {
   position: sticky;
   top: 0;
   height: 100vh;
+  overflow-y: auto;
 }
 .brand {
   display: flex;
@@ -507,5 +508,56 @@ summary {
   }
   .report-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.help-page li {
+  line-height: 1.7;
+  margin-bottom: 12px;
+}
+.help-page a {
+  color: #087c79;
+  text-underline-offset: 3px;
+}
+.help-index {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.help-index a {
+  background: #edf4f4;
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+.help-guide {
+  scroll-margin-top: 20px;
+}
+.help-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.help-heading h2 {
+  margin: 0;
+}
+.help-page .help-tip {
+  padding: 14px 18px;
+  background: #edf4f4;
+  border-left: 3px solid #087c79;
+  border-radius: 6px;
+}
+.help-page details {
+  padding: 14px 0;
+  border-bottom: 1px solid #edf1f3;
+}
+@media (max-width: 640px) {
+  .help-page dl {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .help-page dd {
+    margin-bottom: 12px;
   }
 }

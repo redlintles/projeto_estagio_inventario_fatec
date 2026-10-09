@@ -9,7 +9,8 @@ export type Section =
   | "users"
   | "settings"
   | "reports"
-  | "audit";
+  | "audit"
+  | "help";
 export const sections: Record<Section, string> = {
   dashboard: "Visão geral",
   assets: "Ativos",
@@ -22,4 +23,5 @@ export const sections: Record<Section, string> = {
   settings: "Parâmetros",
   reports: "Relatórios",
   audit: "Auditoria",
+  help: "Ajuda",
 };

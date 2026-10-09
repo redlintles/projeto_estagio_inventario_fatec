@@ -16,6 +16,7 @@ import { Users } from "./features/Users";
 import { Settings } from "./features/Settings";
 import { Reports } from "./features/Reports";
 import { Audit } from "./features/Audit";
+import { Help } from "./features/Help";
 function App() {
   const state = usePatrimonio();
   const {
@@ -150,6 +151,7 @@ function App() {
             .map((s) => (
               <button
                 key={s}
+                aria-current={section === s ? "page" : undefined}
                 className={section === s ? "selected" : ""}
                 onClick={() => choose(s)}
               >
@@ -201,6 +203,7 @@ function App() {
         <Settings state={state} />
         <Reports state={state} />
         <Audit state={state} />
+        <Help state={state} />
         <footer>
           Gestão patrimonial · Histórico preservado · Uso interno da unidade
         </footer>
