@@ -10,6 +10,8 @@ import { mkdir, writeFile, unlink, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
 import * as S from "../persistence/schemas";
+import sharp from "sharp";
+import { basename } from "node:path";
 import { Actor } from "../auth/auth";
 import { AssetsService } from "../assets/assets.service";
 @Injectable()
@@ -30,15 +32,28 @@ export class FilesService {
   ) {
     if (!file || file.size > 8 * 1024 * 1024)
       throw new BadRequestException("Foto ausente ou maior que 8 MB.");
-    const jpeg =
-      file.buffer[0] === 0xff &&
-      file.buffer[1] === 0xd8 &&
-      file.buffer[2] === 0xff;
-    const png = file.buffer
-      .subarray(0, 8)
-      .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
-    if (!jpeg && !png)
-      throw new BadRequestException("Use uma imagem JPEG ou PNG.");
+    let content: Buffer, jpeg: boolean;
+    try {
+      const image = sharp(file.buffer, {
+        limitInputPixels: 16000000,
+        failOn: "warning",
+      });
+      const meta = await image.metadata();
+      if (
+        !["jpeg", "png"].includes(meta.format ?? "") ||
+        (meta.pages ?? 1) !== 1
+      )
+        throw new Error();
+      jpeg = meta.format === "jpeg";
+      // Decode/re-encode to reject fake headers and strip EXIF/location and embedded payloads.
+      content = await (
+        jpeg ? image.rotate().jpeg({ quality: 90 }) : image.rotate().png()
+      ).toBuffer();
+    } catch {
+      throw new BadRequestException(
+        "Use uma foto JPEG ou PNG válida com até 16 megapixels.",
+      );
+    }
     let writtenPath: string | undefined;
     try {
       return await this.db.transaction(async (m) => {
@@ -57,7 +72,7 @@ export class FilesService {
           );
           const hash = (buffer: Buffer) =>
             createHash("sha256").update(buffer).digest("hex");
-          if (hash(stored) !== hash(file.buffer))
+          if (hash(stored) !== hash(content))
             throw new ConflictException(
               "Identificador de foto usado com outro conteúdo.",
             );
@@ -75,14 +90,16 @@ export class FilesService {
         const filename = `${randomUUID()}.${jpeg ? "jpg" : "png"}`;
         await mkdir(this.root(), { recursive: true });
         writtenPath = resolve(this.root(), filename);
-        await writeFile(writtenPath, file.buffer);
+        await writeFile(writtenPath, content, { mode: 0o600 });
         const photo = {
           id,
           assetId,
           eventId: eventId ?? null,
           filename,
           mimeType: jpeg ? "image/jpeg" : "image/png",
-          originalName: file.originalname,
+          originalName: basename(file.originalname)
+            .replace(/[\x00-\x1f]/g, "")
+            .slice(0, 150),
           userId: actor.id,
           createdAt: new Date(),
         };

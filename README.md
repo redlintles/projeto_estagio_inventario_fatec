@@ -14,6 +14,16 @@ Sistema interno da unidade de ensino para importar a base patrimonial, conferir 
 
 A hospedagem será em uma máquina interna da Fatec, na rede local compartilhada, sem VLANs. A configuração operacional de endereço estável, HTTPS e backup está descrita em `docs/deploy.md`. O ambiente Compose continua sendo uma opção de desenvolvimento e demonstração.
 
+## Executar com um comando
+
+```sh
+./iniciar.sh
+```
+
+O script inicia banco, backend e portal, gera a configuração local e aplica as migrations. Requer Node.js 24 e Docker com Compose iniciado; não exige editar env. Portal em `http://localhost:8080`. Credenciais em `.demo/.env`, sem impressão da senha no terminal. Use `./iniciar.sh --rede` para uma demonstração com celulares na mesma rede e `./iniciar.sh --parar` para parar preservando os dados. O modo de rede usa HTTP e é destinado a testes; dados reais exigem a implantação HTTPS descrita em `docs/deploy.md`.
+
+A importação do modelo institucional, estados e cálculos estão em [Importação](docs/importacao.md). O escopo da auditoria e os requisitos restantes estão em [Segurança](docs/seguranca.md).
+
 ## Demonstração com um comando
 
 Com Node.js 24 e Docker com Compose **2.24.4 ou superior** instalado e iniciado:
@@ -22,7 +32,7 @@ Com Node.js 24 e Docker com Compose **2.24.4 ou superior** instalado e iniciado:
 npm run demo
 ```
 
-Não é necessário executar `npm ci` no computador nem editar arquivos `.env`. O comando compila o portal e a API, inicia PostgreSQL e Mailpit, aplica as migrations e cria o administrador. Ao terminar, exibe o endereço **http://localhost:8080**, o login e a senha gerada. A primeira execução precisa de internet para baixar as imagens e dependências.
+Não é necessário executar `npm ci` no computador nem editar arquivos `.env`. O comando compila o portal e a API, inicia PostgreSQL e Mailpit, aplica as migrations e cria o administrador. Ao terminar, exibe o endereço **http://localhost:8080** e o caminho do arquivo privado de credenciais. A primeira execução precisa de internet para baixar as imagens e dependências.
 
 As credenciais ficam em `.demo/.env`, ignorado pelo Git. Executar novamente preserva as credenciais e os dados. O banco da demonstração usa volumes próprios do projeto Docker `fatec-demo`. O portal e a API ficam acessíveis apenas neste computador. As portas 3000, 8080 e 8025 precisam estar livres; pare outras instâncias do projeto antes de iniciar.
 
@@ -63,7 +73,7 @@ npm run dev:backend
 npm run dev:web
 ```
 
-Portal: `http://localhost:5173`. API: `http://localhost:3000/api`. Swagger: `http://localhost:3000/api/docs`. Entre com o administrador criado e cadastre as localizações, unidades e usuários.
+Portal: `http://localhost:5173`. API: `http://localhost:3000/api`. Swagger opcional em `http://localhost:3000/api/docs` com `ENABLE_API_DOCS=true` (somente ambiente controlado). Entre com o administrador criado e cadastre as localizações, unidades e usuários.
 
 ## Começar com Docker
 

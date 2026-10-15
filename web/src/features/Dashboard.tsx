@@ -19,6 +19,11 @@ export function Dashboard({ state }: { state: AppState }) {
           <p className="subtitle">
             Acompanhe o patrimônio e as pendências da unidade.
           </p>
+          <p>
+            Valor total da base:{" "}
+            <strong>{A.formatMoney(dashboard.totalValue ?? "0.00")}</strong> ·
+            Soma calculada pelo sistema, incluindo os bens baixados.
+          </p>
           <div className="cards">
             {Object.entries(A.statusLabels).map(([key, label]) => (
               <button

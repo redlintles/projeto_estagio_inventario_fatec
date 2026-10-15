@@ -1,11 +1,14 @@
 export type Role = "ADMIN" | "PATRIMONIAL" | "CONSULTA";
-export type AssetStatus = "A" | "D" | "B" | "T" | "X";
+export type AssetStatus = "I" | "A" | "D" | "B" | "T" | "X";
 export interface User {
   id: string;
   name: string;
   email: string;
   passwordHash: string;
+  tokenVersion?: number;
   role: Role;
+  permissions?: import("../auth/permissions").Permission[] | null;
+  primaryAdmin?: boolean;
   active: boolean;
 }
 export interface Location {
@@ -34,6 +37,7 @@ export interface Asset {
   incorporationDate: string;
   value: string;
   status: AssetStatus;
+  unitId: string | null;
   locationId: string | null;
   condition: number | null;
   version: number;

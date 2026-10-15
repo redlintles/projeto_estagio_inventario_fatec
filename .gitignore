@@ -14,3 +14,9 @@ local.properties
 *.tsbuildinfo
 
 .demo/
+
+# Client sources and backups must stay outside version control.
+*.xlsx
+*.xls
+*.dump
+*.sql

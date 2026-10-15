@@ -22,6 +22,7 @@ class Api(session: Session) {
   fun request(path: String, body: JSONObject? = null): String {
     val conn = URL("${baseUrl}/$path").openConnection() as HttpURLConnection
     try {
+      conn.instanceFollowRedirects = false
       conn.connectTimeout = 15000
       conn.readTimeout = 20000
       conn.setRequestProperty("Authorization", "Bearer ${token}")
@@ -51,19 +52,22 @@ class Api(session: Session) {
         )
         .openConnection() as HttpURLConnection
     try {
+      conn.instanceFollowRedirects = false
       conn.connectTimeout = 15000
       conn.readTimeout = 30000
       conn.requestMethod = "POST"
       conn.doOutput = true
       conn.setRequestProperty("Authorization", "Bearer ${token}")
       conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+      val header =
+        "--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"foto.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n"
+          .toByteArray()
+      val trailer = "\r\n--$boundary--\r\n".toByteArray()
+      conn.setFixedLengthStreamingMode(header.size.toLong() + file.length() + trailer.size)
       conn.outputStream.use { out ->
-        out.write(
-          "--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"foto.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n"
-            .toByteArray()
-        )
+        out.write(header)
         file.inputStream().use { it.copyTo(out) }
-        out.write("\r\n--$boundary--\r\n".toByteArray())
+        out.write(trailer)
       }
       if (conn.responseCode !in 200..299)
         throw ApiFailure(

@@ -4,7 +4,7 @@
 
 1. Criar administrador, localizações e unidades.
 2. Baixar o modelo e comparar com a planilha oficial quando ela estiver disponível.
-3. Analisar o arquivo, corrigir inconsistências e confirmar os registros válidos.
+3. Selecionar o arquivo para importar automaticamente os novos bens válidos. Corrigir linhas inválidas e resolver somente os conflitos, salvando as escolhas.
 4. Usar o primeiro inventário para preencher localizações e conferir a situação física.
 
 Uma importação não remove ativos ausentes do arquivo. O número patrimonial identifica o registro na reimportação. Mudanças nesse identificador exigem atenção: um patrimônio diferente será tratado como outro ativo.

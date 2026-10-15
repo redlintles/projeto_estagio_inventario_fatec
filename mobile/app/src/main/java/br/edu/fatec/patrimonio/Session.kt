@@ -79,12 +79,35 @@ class Session(context: Context) {
       prefs.edit().putString("role", value).apply()
     }
 
+  fun updateAccess(user: org.json.JSONObject) {
+    role = user.getString("role")
+    val permissions = user.optJSONArray("permissions")
+    prefs.edit().putString("permissions", permissions?.toString() ?: "[]").apply()
+  }
+
+  fun can(permission: String): Boolean {
+    if (role == "ADMIN") return true
+    val stored = prefs.getString("permissions", null)
+    if (stored == null) return if (permission.endsWith(".view")) true else role == "PATRIMONIAL"
+    val permissions = org.json.JSONArray(stored)
+    return (0 until permissions.length()).any { permissions.getString(it) == permission }
+  }
+
   var apiUrl: String
     get() = prefs.getString("apiUrl", "http://10.0.2.2:3000/api")!!
     set(value) {
-      require(value.startsWith("https://") || (BuildConfig.DEBUG && value.startsWith("http://"))) {
+      val parsed = java.net.URI(value.trim())
+      require(
+        parsed.host != null &&
+          parsed.userInfo == null &&
+          parsed.query == null &&
+          parsed.fragment == null
+      ) {
+        "Endereço da API inválido."
+      }
+      require(parsed.scheme == "https" || (BuildConfig.DEBUG && parsed.scheme == "http")) {
         "Use HTTPS em produção."
       }
-      prefs.edit().putString("apiUrl", value.trimEnd('/')).apply()
+      prefs.edit().putString("apiUrl", value.trim().trimEnd('/')).apply()
     }
 }

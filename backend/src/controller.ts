@@ -1,3 +1,11 @@
+import { permissionKeys, normalizePermissions } from "./auth/permissions";
+import { RequirePermissions, RequireAnyPermissions } from "./auth/auth";
+import {
+  ReportsService,
+  csvReport,
+  workbookReport,
+  displayCell,
+} from "./reports/reports";
 import { Inject } from "@nestjs/common";
 import {
   Controller,
@@ -68,32 +76,185 @@ export class ApiController {
       properties: { email: { type: "string" }, password: { type: "string" } },
     },
   })
-  login(@Body() body: unknown) {
+  login(@Body() body: unknown, @Req() request: Request) {
     const input = parse(
-      z.object({ email: z.email(), password: z.string().min(1).max(128) }),
+      z.object({
+        email: z.email().max(254),
+        password: z.string().min(1).max(128),
+      }),
       body,
     );
-    return this.auth.login(input.email, input.password);
+    return this.auth.login(
+      input.email,
+      input.password,
+      request.ip ?? request.socket.remoteAddress ?? "unknown",
+    );
+  }
+  @Post("auth/logout") async logout(@Req() r: AuthRequest) {
+    await this.db
+      .getRepository(S.UserSchema)
+      .increment({ id: r.user.id }, "tokenVersion", 1);
+    return { loggedOut: true };
   }
   @Get("auth/me") me(@Req() r: AuthRequest) {
     return r.user;
   }
-  @Get("dashboard") dashboard() {
+  @Get("dashboard") @RequirePermissions("dashboard.view") dashboard() {
     return this.assets.dashboard();
   }
-  @Get("assets") list(@Query() query: Record<string, string>) {
+  @Get("assets") @RequirePermissions("assets.view") list(
+    @Query() query: Record<string, string>,
+  ) {
     return this.assets.list(query);
   }
-  @Get("assets/:id") detail(@Param("id") id: string) {
+  @Get("assets/:id") @RequirePermissions("assets.view") detail(
+    @Param("id") id: string,
+  ) {
     return this.assets.detail(parse(uuid, id));
   }
-  @Post("assets") @Roles("ADMIN") create(
+  @Post("assets") @RequirePermissions("assets.create") create(
     @Body() body: unknown,
     @Req() r: AuthRequest,
   ) {
-    return this.assets.create(parse(assetInput, body), r.user);
+    const data = parse(
+      assetInput
+        .extend({
+          value: assetInput.shape.value.optional(),
+          previousAssetId: uuid.optional(),
+        })
+        .strict(),
+      body,
+    );
+    const { previousAssetId, ...fields } = data;
+    if (!previousAssetId && fields.value === undefined)
+      throw new BadRequestException(
+        "Informe o valor ou um ativo de referência para calcular o valor anterior + 1.",
+      );
+    const input = parse(assetInput, {
+      ...fields,
+      value: fields.value ?? "0.00",
+    });
+    return this.assets.create(input, r.user, previousAssetId);
   }
-  @Post("assets/:id/location") @Roles("PATRIMONIAL") locate(
+  @Post("assets/location-batch")
+  @RequirePermissions("batches.location")
+  locateBatch(@Body() body: unknown, @Req() r: AuthRequest) {
+    const input = parse(
+      z
+        .object({
+          locationId: uuid,
+          assets: z
+            .array(z.object({ id: uuid, expectedVersion: version }).strict())
+            .min(1)
+            .max(500),
+        })
+        .strict(),
+      body,
+    );
+    return this.assets.locateBatch(input.assets, input.locationId, r.user);
+  }
+  @Post("assets/unit-batch")
+  @RequirePermissions("batches.unit")
+  assignUnitBatch(@Body() body: unknown, @Req() r: AuthRequest) {
+    const input = parse(
+      z
+        .object({
+          unitId: uuid,
+          assets: z
+            .array(z.object({ id: uuid, expectedVersion: version }).strict())
+            .min(1)
+            .max(500),
+        })
+        .strict(),
+      body,
+    );
+    return this.assets.assignUnitBatch(input.assets, input.unitId, r.user);
+  }
+  @Post("asset-batches/selection")
+  @RequireAnyPermissions(
+    "batches.unit",
+    "batches.location",
+    "batches.undo",
+    "batches.redo",
+  )
+  async batchSelection(@Body() body: unknown) {
+    const input = parse(
+      z.object({ filters: z.record(z.string(), z.string()) }).strict(),
+      body,
+    );
+    const rows = await this.assets.list(input.filters, true);
+    return {
+      matched: rows.length,
+      selected: rows.filter((a) => ["I", "A"].includes(a.status)).length,
+    };
+  }
+  @Post("asset-batches/preview")
+  @RequireAnyPermissions("batches.unit", "batches.location")
+  previewBatch(@Body() body: unknown, @Req() r: AuthRequest) {
+    const input = parse(
+      z
+        .object({
+          field: z.enum(["unitId", "locationId"]),
+          targetId: uuid,
+          assets: z
+            .array(z.object({ id: uuid, expectedVersion: version }).strict())
+            .min(1)
+            .max(500)
+            .optional(),
+          filters: z.record(z.string(), z.string()).optional(),
+        })
+        .strict(),
+      body,
+    );
+    return this.assets.previewBatch(
+      input.field,
+      input.targetId,
+      input.assets,
+      input.filters,
+      r.user,
+    );
+  }
+  @Post("asset-batches/:id/apply")
+  @RequireAnyPermissions("batches.unit", "batches.location")
+  applyBatch(@Param("id") id: string, @Req() r: AuthRequest) {
+    return this.assets.applyBatch(parse(uuid, id), r.user);
+  }
+  @Get("asset-batches")
+  @RequireAnyPermissions(
+    "batches.unit",
+    "batches.location",
+    "batches.undo",
+    "batches.redo",
+  )
+  batchHistory(@Query("offset") offset = "0") {
+    const value = Number(offset);
+    if (!Number.isSafeInteger(value) || value < 0 || value > 10000000)
+      throw new BadRequestException("Página inválida.");
+    return this.assets.batchHistory(value);
+  }
+  @Post("asset-batches/:id/undo") @RequirePermissions("batches.undo") undoBatch(
+    @Param("id") id: string,
+    @Req() r: AuthRequest,
+  ) {
+    return this.assets.undoBatch(parse(uuid, id), r.user);
+  }
+  @Post("asset-batches/:id/redo") @RequirePermissions("batches.redo") redoBatch(
+    @Param("id") id: string,
+    @Req() r: AuthRequest,
+  ) {
+    return this.assets.redoBatch(parse(uuid, id), r.user);
+  }
+  @Get("asset-batches/:id/events")
+  @RequireAnyPermissions(
+    "batches.unit",
+    "batches.location",
+    "batches.undo",
+    "batches.redo",
+  )
+  batchEvents(@Param("id") id: string) {
+    return this.assets.batchEvents(parse(uuid, id));
+  }
+  @Post("assets/:id/location") @RequirePermissions("assets.location") locate(
     @Param("id") id: string,
     @Body() body: unknown,
     @Req() r: AuthRequest,
@@ -109,7 +270,9 @@ export class ApiController {
       r.user,
     );
   }
-  @Post("assets/:id/available") @Roles("PATRIMONIAL") available(
+  @Post("assets/:id/available")
+  @RequirePermissions("assets.available")
+  available(
     @Param("id") id: string,
     @Body() body: unknown,
     @Req() r: AuthRequest,
@@ -125,7 +288,9 @@ export class ApiController {
       r.user,
     );
   }
-  @Post("assets/:id/reservations") @Roles("PATRIMONIAL") reserve(
+  @Post("assets/:id/reservations")
+  @RequirePermissions("assets.reserve")
+  reserve(
     @Param("id") id: string,
     @Body() body: unknown,
     @Req() r: AuthRequest,
@@ -141,7 +306,9 @@ export class ApiController {
       r.user,
     );
   }
-  @Post("reservations/:id/:action") @Roles("PATRIMONIAL") reservation(
+  @Post("reservations/:id/:action")
+  @RequirePermissions("assets.reserve")
+  reservation(
     @Param("id") id: string,
     @Param("action") action: string,
     @Body() body: unknown,
@@ -155,7 +322,7 @@ export class ApiController {
       r.user,
     );
   }
-  @Post("write-offs") @Roles("PATRIMONIAL") writeOff(
+  @Post("write-offs") @RequirePermissions("assets.writeOff") writeOff(
     @Body() body: unknown,
     @Req() r: AuthRequest,
   ) {
@@ -175,12 +342,14 @@ export class ApiController {
       throw new BadRequestException("Ativo duplicado.");
     return this.assets.writeOff(b.assets, b.justification, r.user);
   }
-  @Get("locations") locations() {
+  @Get("locations") @RequirePermissions("locations.view") locations() {
     return this.db
       .getRepository(S.LocationSchema)
       .find({ order: { code: "ASC" } });
   }
-  @Post("locations") @Roles("ADMIN") location(@Body() body: unknown) {
+  @Post("locations") @RequirePermissions("locations.manage") location(
+    @Body() body: unknown,
+  ) {
     const b = parse(
       z
         .object({
@@ -197,10 +366,9 @@ export class ApiController {
       .getRepository(S.LocationSchema)
       .save({ id: randomUUID(), ...b, active: true });
   }
-  @Patch("locations/:id") @Roles("ADMIN") updateLocation(
-    @Param("id") id: string,
-    @Body() body: unknown,
-  ) {
+  @Patch("locations/:id")
+  @RequirePermissions("locations.manage")
+  updateLocation(@Param("id") id: string, @Body() body: unknown) {
     const b = parse(
       z
         .object({
@@ -215,16 +383,18 @@ export class ApiController {
     );
     return this.db.getRepository(S.LocationSchema).update(parse(uuid, id), b);
   }
-  @Get("units") units() {
+  @Get("units") @RequirePermissions("units.view") units() {
     return this.db.getRepository(S.UnitSchema).find({ order: { name: "ASC" } });
   }
-  @Post("units") @Roles("ADMIN") unit(@Body() body: unknown) {
+  @Post("units") @RequirePermissions("units.manage") unit(
+    @Body() body: unknown,
+  ) {
     const b = parse(
       z
         .object({
           code: z.string().min(1).max(20),
           name: z.string().min(1).max(255),
-          email: z.email(),
+          email: z.email().max(254),
         })
         .strict(),
       body,
@@ -233,7 +403,7 @@ export class ApiController {
       .getRepository(S.UnitSchema)
       .save({ id: randomUUID(), ...b, active: true });
   }
-  @Patch("units/:id") @Roles("ADMIN") updateUnit(
+  @Patch("units/:id") @RequirePermissions("units.manage") updateUnit(
     @Param("id") id: string,
     @Body() body: unknown,
   ) {
@@ -241,7 +411,7 @@ export class ApiController {
       z
         .object({
           name: z.string().min(1).max(255).optional(),
-          email: z.email().optional(),
+          email: z.email().max(254).optional(),
           active: z.boolean().optional(),
         })
         .strict(),
@@ -251,7 +421,15 @@ export class ApiController {
   }
   @Get("users") @Roles("ADMIN") users() {
     return this.db.getRepository(S.UserSchema).find({
-      select: { id: true, name: true, email: true, role: true, active: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        active: true,
+        permissions: true,
+        primaryAdmin: true,
+      },
     });
   }
   @Post("users") @Roles("ADMIN") user(@Body() body: unknown) {
@@ -259,9 +437,14 @@ export class ApiController {
       z
         .object({
           name: z.string().min(1).max(100),
-          email: z.email(),
+          email: z.email().max(254),
           password: z.string().min(12).max(128),
           role: z.enum(["ADMIN", "PATRIMONIAL", "CONSULTA"]),
+          permissions: z
+            .array(z.enum(permissionKeys))
+            .max(permissionKeys.length)
+            .nullable()
+            .optional(),
         })
         .strict(),
       body,
@@ -273,6 +456,7 @@ export class ApiController {
     email: string;
     password: string;
     role: "ADMIN" | "PATRIMONIAL" | "CONSULTA";
+    permissions?: import("./auth/permissions").Permission[] | null;
   }) {
     const user = await this.db.getRepository(S.UserSchema).save({
       id: randomUUID(),
@@ -280,6 +464,7 @@ export class ApiController {
       email: b.email.toLowerCase(),
       passwordHash: hashPassword(b.password),
       role: b.role,
+      permissions: b.permissions ? normalizePermissions(b.permissions) : null,
       active: true,
     });
     const { passwordHash, ...safe } = user;
@@ -295,6 +480,11 @@ export class ApiController {
         .object({
           active: z.boolean().optional(),
           role: z.enum(["ADMIN", "PATRIMONIAL", "CONSULTA"]).optional(),
+          permissions: z
+            .array(z.enum(permissionKeys))
+            .max(permissionKeys.length)
+            .nullable()
+            .optional(),
           password: z.string().min(12).max(128).optional(),
         })
         .strict(),
@@ -308,15 +498,42 @@ export class ApiController {
         "Não remova seu próprio acesso administrativo.",
       );
     const { password, ...fields } = b;
-    return this.db.getRepository(S.UserSchema).update(parse(uuid, id), {
-      ...fields,
-      ...(password ? { passwordHash: hashPassword(password) } : {}),
+    const targetId = parse(uuid, id);
+    return this.db.transaction(async (m) => {
+      const target = await m.getRepository(S.UserSchema).findOne({
+        where: { id: targetId },
+        lock: { mode: "pessimistic_write" },
+      });
+      if (!target) throw new BadRequestException("Usuário não encontrado.");
+      if (
+        target.primaryAdmin &&
+        (r.user.id !== targetId ||
+          b.active === false ||
+          (b.role && b.role !== "ADMIN") ||
+          b.permissions !== undefined)
+      )
+        throw new BadRequestException(
+          "O administrador principal mantém acesso global. Somente ele pode alterar sua própria senha.",
+        );
+      const result = await m.getRepository(S.UserSchema).update(targetId, {
+        ...fields,
+        ...(fields.permissions
+          ? { permissions: normalizePermissions(fields.permissions) }
+          : {}),
+        ...(password ? { passwordHash: hashPassword(password) } : {}),
+      });
+      await m
+        .getRepository(S.UserSchema)
+        .increment({ id: targetId }, "tokenVersion", 1);
+      return result;
     });
   }
-  @Get("settings") @Roles("ADMIN") settings() {
+  @Get("settings") @RequirePermissions("settings.manage") settings() {
     return this.db.getRepository(S.SettingSchema).find();
   }
-  @Post("settings") @Roles("ADMIN") setting(@Body() body: unknown) {
+  @Post("settings") @RequirePermissions("settings.manage") setting(
+    @Body() body: unknown,
+  ) {
     const b = parse(
       z
         .object({
@@ -340,22 +557,24 @@ export class ApiController {
         parse(z.email(), email);
     return this.db.getRepository(S.SettingSchema).save(b);
   }
-  @Get("inventories") inventories() {
+  @Get("inventories") @RequirePermissions("inventories.view") inventories() {
     return this.db
       .getRepository(S.InventorySchema)
       .find({ order: { startedAt: "DESC" }, take: 500 });
   }
-  @Post("inventories") @Roles("PATRIMONIAL") start(
+  @Post("inventories") @RequirePermissions("inventories.manage") start(
     @Body() body: unknown,
     @Req() r: AuthRequest,
   ) {
     const b = parse(z.object({ locationId: uuid }).strict(), body);
     return this.inventory.start(b.locationId, r.user);
   }
-  @Get("inventories/:id") inventoryDetail(@Param("id") id: string) {
+  @Get("inventories/:id")
+  @RequirePermissions("inventories.view")
+  inventoryDetail(@Param("id") id: string) {
     return this.inventory.detail(parse(uuid, id));
   }
-  @Post("inventories/:id/scans") @Roles("PATRIMONIAL") scan(
+  @Post("inventories/:id/scans") @RequirePermissions("inventories.manage") scan(
     @Param("id") id: string,
     @Body() body: unknown,
     @Req() r: AuthRequest,
@@ -366,13 +585,12 @@ export class ApiController {
       r.user,
     );
   }
-  @Post("inventories/:id/close") @Roles("PATRIMONIAL") close(
-    @Param("id") id: string,
-    @Req() r: AuthRequest,
-  ) {
+  @Post("inventories/:id/close")
+  @RequirePermissions("inventories.manage")
+  close(@Param("id") id: string, @Req() r: AuthRequest) {
     return this.inventory.close(parse(uuid, id), r.user);
   }
-  @Post("sync") @Roles("PATRIMONIAL") sync(
+  @Post("sync") @RequirePermissions("inventories.manage") sync(
     @Body() body: unknown,
     @Req() r: AuthRequest,
   ) {
@@ -384,7 +602,9 @@ export class ApiController {
     );
     return this.inventory.sync(b.operationId, b.inventoryId, b.input, r.user);
   }
-  @Get("divergences") divergences(@Query() q: Record<string, string>) {
+  @Get("divergences") @RequirePermissions("divergences.view") divergences(
+    @Query() q: Record<string, string>,
+  ) {
     const query = this.db
       .getRepository(S.DivergenceSchema)
       .createQueryBuilder("d");
@@ -400,7 +620,9 @@ export class ApiController {
       });
     return query.orderBy("d.createdAt", "DESC").take(5000).getMany();
   }
-  @Post("divergences/:id/resolve") @Roles("PATRIMONIAL") resolve(
+  @Post("divergences/:id/resolve")
+  @RequirePermissions("divergences.resolve")
+  resolve(
     @Param("id") id: string,
     @Body() body: unknown,
     @Req() r: AuthRequest,
@@ -421,24 +643,39 @@ export class ApiController {
       r.user,
     );
   }
-  @Get("imports/template") @Roles("ADMIN") template(@Res() res: Response) {
+  @Get("imports/template") @RequirePermissions("imports.manage") template(
+    @Res() res: Response,
+  ) {
     res
       .type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
       .attachment("modelo-ativos.xlsx")
       .send(this.imports.template());
   }
   @Post("imports/preview")
-  @Roles("ADMIN")
+  @RequirePermissions("imports.manage")
   @ApiConsumes("multipart/form-data")
   @ApiBody(fileBody)
   @UseInterceptors(
-    FileInterceptor("file", { limits: { fileSize: 8 * 1024 * 1024 } }),
+    FileInterceptor("file", {
+      limits: {
+        fileSize: 8 * 1024 * 1024,
+        files: 1,
+        fields: 1,
+        parts: 2,
+        fieldSize: 100,
+      },
+    }),
   )
-  preview(@UploadedFile() file: Express.Multer.File, @Req() r: AuthRequest) {
+  preview(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() r: AuthRequest,
+    @Body() body: unknown,
+  ) {
     if (!file) throw new BadRequestException("Selecione a planilha.");
-    return this.imports.preview(file.buffer, file.originalname, r.user);
+    const { unitId } = parse(z.object({ unitId: uuid }).strict(), body);
+    return this.imports.preview(file.buffer, file.originalname, r.user, unitId);
   }
-  @Post("imports/:id/apply") @Roles("ADMIN") apply(
+  @Post("imports/:id/apply") @RequirePermissions("imports.manage") apply(
     @Param("id") id: string,
     @Body() body: unknown,
     @Req() r: AuthRequest,
@@ -451,7 +688,22 @@ export class ApiController {
               z.object({
                 line: z.number().int().min(2),
                 action: z.enum(["SKIP", "APPLY"]),
-                fields: z.array(z.string()).optional(),
+                fields: z
+                  .array(
+                    z.enum([
+                      "patrimony",
+                      "description",
+                      "group",
+                      "uniqueCode",
+                      "originUnit",
+                      "incorporationDate",
+                      "value",
+                      "status",
+                      "unitId",
+                    ]),
+                  )
+                  .max(9)
+                  .optional(),
               }),
             )
             .max(10000),
@@ -462,11 +714,13 @@ export class ApiController {
     return this.imports.apply(parse(uuid, id), b.decisions, r.user);
   }
   @Post("assets/:id/photos")
-  @Roles("PATRIMONIAL")
+  @RequirePermissions("photos.upload")
   @ApiConsumes("multipart/form-data")
   @ApiBody(fileBody)
   @UseInterceptors(
-    FileInterceptor("file", { limits: { fileSize: 8 * 1024 * 1024 } }),
+    FileInterceptor("file", {
+      limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 0, parts: 1 },
+    }),
   )
   photo(
     @Param("id") id: string,
@@ -483,7 +737,7 @@ export class ApiController {
       uploadId ? parse(uuid, uploadId) : undefined,
     );
   }
-  @Get("photos/:id") async photoGet(
+  @Get("photos/:id") @RequirePermissions("assets.view") async photoGet(
     @Param("id") id: string,
     @Res() res: Response,
   ) {
@@ -491,55 +745,65 @@ export class ApiController {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.type(photo.mimeType).sendFile(path);
   }
-  @Get("audit") @Roles("ADMIN") audit() {
+  @Get("audit") @RequirePermissions("audit.view") audit() {
     return this.db
       .getRepository(S.MovementSchema)
       .find({ order: { createdAt: "DESC" }, take: 5000 });
   }
-  @Get("notifications") @Roles("ADMIN") notifications() {
+  @Get("notifications") @RequirePermissions("settings.manage") notifications() {
     return this.db
       .getRepository(S.OutboxSchema)
       .find({ order: { createdAt: "DESC" }, take: 500 });
   }
-  @Post("jobs/run") @Roles("ADMIN") async jobsRun() {
+  @Post("jobs/run") @RequirePermissions("settings.manage") async jobsRun() {
     const expired = await this.assets.expire();
     return { ...expired, ...(await this.jobs.sendPending()) };
   }
-  @Get("reports/:kind") async report(
+  @Get("reports/:kind/preview")
+  @RequirePermissions("reports.export")
+  async reportPreview(
     @Param("kind") kind: string,
-    @Query("locationId") locationId: string | undefined,
+    @Query() query: Record<string, string>,
+  ) {
+    const report = await new ReportsService(this.db, this.assets).build(
+      kind,
+      query,
+    );
+    return {
+      title: report.title,
+      columns: report.columns,
+      rows: report.rows
+        .slice(0, 30)
+        .map((row) => row.map((v, c) => displayCell(v, report.columns[c]))),
+      count: report.rows.length,
+      filters: report.filters,
+    };
+  }
+  @Get("reports/:kind") @RequirePermissions("reports.export") async report(
+    @Param("kind") kind: string,
+    @Query() query: Record<string, string>,
     @Res() res: Response,
   ) {
-    let rows: unknown[];
-    if (kind === "movements")
-      rows = await this.db
-        .getRepository(S.MovementSchema)
-        .find({ order: { createdAt: "DESC" } });
-    else if (kind === "divergences")
-      rows = await this.db.getRepository(S.DivergenceSchema).find();
-    else if (kind === "inventories")
-      rows = await this.db.getRepository(S.InventoryItemSchema).find();
-    else {
-      const status: Record<string, string> = {
-        available: "D",
-        transferred: "T",
-        writtenOff: "X",
-        byLocation: "A",
-      };
-      if (!status[kind])
-        throw new BadRequestException("Relatório inexistente.");
-      rows = await this.assets.list(
-        {
-          status: status[kind],
-          ...(locationId ? { locationId: parse(uuid, locationId) } : {}),
-        },
-        true,
-      );
-    }
+    const report = await new ReportsService(this.db, this.assets).build(
+      kind,
+      query,
+    );
+    const format = query.format ?? "csv";
+    const mime = {
+      csv: "text/csv; charset=utf-8",
+      xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ods: "application/vnd.oasis.opendocument.spreadsheet",
+    }[format]!;
     res
-      .type("text/csv; charset=utf-8")
-      .attachment(`${kind}.csv`)
-      .send(toCsv(rows as Record<string, unknown>[]));
+      .type(mime)
+      .attachment(
+        `relatorio-${kind}-${new Date().toISOString().slice(0, 10)}.${format}`,
+      )
+      .send(
+        format === "csv"
+          ? csvReport(report)
+          : workbookReport(report, format as "xlsx" | "ods"),
+      );
   }
 }
 export function toCsv(rows: Record<string, unknown>[]) {
@@ -548,7 +812,7 @@ export function toCsv(rows: Record<string, unknown>[]) {
   const cell = (value: unknown) => {
     let text =
       typeof value === "object" ? JSON.stringify(value) : String(value ?? "");
-    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    if (/^[\s\u0000-\u001f]*[=+\-@]|^[\t\r\n]/.test(text)) text = `'${text}`;
     return `"${text.replace(/"/g, '""')}"`;
   };
   return (

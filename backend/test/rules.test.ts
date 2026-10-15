@@ -39,6 +39,7 @@ describe("Regras patrimoniais", () => {
   });
   it("neutraliza fórmula em CSV e escapa aspas", () => {
     expect(toCsv([{ name: '=HYPERLINK("url")' }])).toContain("'=");
+    expect(toCsv([{ name: '  =HYPERLINK("url")' }])).toContain("'  =");
     expect(toCsv([{ name: 'a"b' }])).toContain('a""b');
   });
 });

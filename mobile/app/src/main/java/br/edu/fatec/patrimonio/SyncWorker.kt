@@ -8,23 +8,27 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
-/** Mesmo UUID em cada reenvio; o servidor guarda o resultado da primeira aplicação. */
+/** Leitura e foto têm etapas persistidas e identificadores estáveis em todos os reenvios. */
 class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
   override suspend fun doWork(): Result =
     withContext(Dispatchers.IO) {
       val session = Session(applicationContext)
-      if (session.token.isEmpty()) return@withContext Result.success()
-      val store = LocalStore(applicationContext)
-      val api = Api(session)
+      if (session.token.isBlank()) return@withContext Result.success()
       val owner = session.userId
+      val server = session.apiUrl
+      val token = session.token
+      val store = LocalStore(applicationContext, server, owner)
+      val api = Api(session)
+      var retry = false
       try {
         for (op in
           store.operations(owner).filter { it.state in listOf("PENDING", "PHOTO_PENDING") }) {
+          if (session.userId != owner || session.apiUrl != server || session.token != token)
+            return@withContext Result.success()
+          var photoStage = op.state == "PHOTO_PENDING"
+          var eventId = op.eventId
           try {
-            if (session.userId != owner || session.token.isBlank())
-              return@withContext Result.success()
-            var eventId = op.eventId
-            if (op.state == "PENDING") {
+            if (!photoStage) {
               val result =
                 JSONObject(
                   api.request(
@@ -36,36 +40,79 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                   )
                 )
               eventId = result.optString("divergenceId").takeIf { it.isNotBlank() && it != "null" }
-              store.state(
-                op.id,
-                if (op.photo != null) "PHOTO_PENDING" else "SYNCED",
-                eventId = eventId,
-              )
-              val assets =
-                store.snapshot("assets").objects().map {
-                  if (it.optString("id") == op.assetId) result.getJSONObject("asset") else it
-                }
-              if (session.userId == owner && session.token.isNotBlank())
+              photoStage = op.photo != null
+              store.state(op.id, if (photoStage) "PHOTO_PENDING" else "SYNCED", eventId = eventId)
+              val incoming = result.getJSONObject("asset")
+              synchronized(LocalStore::class.java) {
+                val assets =
+                  store.snapshot("assets").objects().map {
+                    if (
+                      it.optString("id") == op.assetId &&
+                        incoming.optInt("version") >= it.optInt("version")
+                    )
+                      incoming
+                    else it
+                  }
                 store.cache("assets", org.json.JSONArray(assets))
+              }
             }
-            if (op.photo != null) {
-              api.photo(op.assetId, File(op.photo), eventId, op.id)
+            if (photoStage) {
+              if (session.userId != owner || session.apiUrl != server || session.token != token)
+                return@withContext Result.success()
+              val file = op.photo?.let { File(it) }
+              if (file == null || !file.isFile) {
+                store.state(
+                  op.id,
+                  "PHOTO_ERROR",
+                  "O registro foi preservado, mas o arquivo de foto não está disponível. Revise no portal.",
+                  eventId,
+                )
+                continue
+              }
+              api.photo(op.assetId, file, eventId, op.id)
               store.state(op.id, "SYNCED")
-              File(op.photo).delete()
+              file.delete()
             }
           } catch (e: ApiFailure) {
-            if (syncDecision(e.status) == SyncDecision.LOGIN) {
-              store.state(op.id, op.state, "Faça login com a conta responsável para sincronizar.")
+            val decision = syncDecision(e.status)
+            if (decision == SyncDecision.LOGIN) {
+              store.state(
+                op.id,
+                if (photoStage) "PHOTO_PENDING" else "PENDING",
+                "Sessão expirada ou acesso alterado. Entre novamente com a mesma conta.",
+                eventId,
+              )
               return@withContext Result.success()
             }
-            if (syncDecision(e.status) == SyncDecision.CONFLICT) {
-              store.state(op.id, "CONFLICT", e.message ?: "Conflito")
-            } else if (syncDecision(e.status) == SyncDecision.INVALID) {
-              store.state(op.id, "ERROR", e.message ?: "Dados inválidos")
-            } else return@withContext Result.retry()
+            if (decision == SyncDecision.RETRY) {
+              store.state(
+                op.id,
+                if (photoStage) "PHOTO_PENDING" else "PENDING",
+                e.message ?: "Envio temporariamente indisponível.",
+                eventId,
+              )
+              retry = true
+            } else
+              store.state(
+                op.id,
+                failureState(photoStage, decision),
+                if (decision == SyncDecision.BLOCKED)
+                  "Permissão insuficiente. Solicite ao administrador a tarefa necessária. ${e.message}"
+                else e.message ?: "Revise os dados.",
+                eventId,
+              )
+          } catch (e: java.io.IOException) {
+            store.state(
+              op.id,
+              if (photoStage) "PHOTO_PENDING" else "PENDING",
+              "Sem comunicação com o servidor; envio preservado.",
+              eventId,
+            )
+            retry = true
           }
+          if (retry) break
         }
-        Result.success()
+        if (retry) Result.retry() else Result.success()
       } catch (_: Exception) {
         Result.retry()
       } finally {

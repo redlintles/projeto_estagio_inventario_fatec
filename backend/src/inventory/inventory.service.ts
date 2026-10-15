@@ -5,7 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from "@nestjs/common";
-import { DataSource, EntityManager } from "typeorm";
+import { DataSource, EntityManager, In } from "typeorm";
 import { randomUUID, createHash } from "node:crypto";
 import { z } from "zod";
 import * as S from "../persistence/schemas";
@@ -29,7 +29,7 @@ export class InventoryService {
         throw new BadRequestException("Localização inválida.");
       const expected = await m
         .getRepository(S.AssetSchema)
-        .findBy({ locationId, status: "A" });
+        .findBy({ locationId, status: In(["I", "A"]) });
       return m.getRepository(S.InventorySchema).save({
         id: randomUUID(),
         locationId,
@@ -58,7 +58,7 @@ export class InventoryService {
       input.assetId,
       input.expectedVersion,
     );
-    requireStatus(asset, ["A"]);
+    requireStatus(asset, ["I", "A"]);
     if (
       await m
         .getRepository(S.InventoryItemSchema)
@@ -84,6 +84,7 @@ export class InventoryService {
       });
     } else {
       asset.locationId = inventory.locationId;
+      if (asset.status === "I") asset.status = "A";
       if (input.condition !== undefined) asset.condition = input.condition;
     }
     await this.assets.save(
@@ -195,7 +196,7 @@ export class InventoryService {
       if (divergence.status !== "PENDING")
         throw new ConflictException("Divergência já tratada.");
       const asset = await this.assets.locked(m, divergence.assetId);
-      requireStatus(asset, ["A", "D", "B"]);
+      requireStatus(asset, ["I", "A", "D", "B"]);
       const before = { ...asset };
       if (newLocationId) {
         if (

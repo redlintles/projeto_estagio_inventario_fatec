@@ -12,12 +12,13 @@ export function Divergences({ state }: { state: AppState }) {
     divergences,
     setDivergences,
     filter,
-    operator,
+    can,
     run,
     refreshDetail,
     form,
     choose,
   } = state;
+  const operator = can("divergences.resolve");
   return (
     <>
       {section === "divergences" && (

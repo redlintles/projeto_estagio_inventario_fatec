@@ -10,12 +10,30 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { DataSource } from "typeorm";
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import {
+  randomBytes,
+  scryptSync,
+  scrypt,
+  timingSafeEqual,
+  createHash,
+} from "node:crypto";
 import jwt from "jsonwebtoken";
 import { UserSchema } from "../persistence/schemas";
 import { Role, User } from "../domain/model";
+import { promisify } from "node:util";
+import { AttemptLimiter } from "./rate-limit";
+import { effectivePermissions, Permission } from "./permissions";
+export const RequireAnyPermissions = (...permissions: Permission[]) =>
+  SetMetadata("anyPermissions", permissions);
+export const RequirePermissions = (...permissions: Permission[]) =>
+  SetMetadata("permissions", permissions);
+const derive = promisify(scrypt);
+const dummyHash = hashPassword(randomBytes(32).toString("hex"));
 export const Roles = (...roles: Role[]) => SetMetadata("roles", roles);
-export type Actor = Pick<User, "id" | "role" | "name" | "email">;
+export type Actor = Pick<User, "id" | "role" | "name" | "email"> & {
+  permissions?: Permission[];
+  primaryAdmin?: boolean;
+};
 export function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
@@ -35,32 +53,49 @@ export function jwtSecret() {
 }
 @Injectable()
 export class AuthService {
-  private failures = new Map<string, { count: number; until: number }>();
+  private limiter = new AttemptLimiter();
   constructor(@Inject(DataSource) private readonly db: DataSource) {}
-  async login(email: string, password: string) {
-    const key = email.toLowerCase(),
-      failure = this.failures.get(key);
-    if (failure && failure.until > Date.now() && failure.count >= 8)
-      throw new UnauthorizedException("Muitas tentativas. Aguarde 15 minutos.");
-    const user = await this.db
-      .getRepository(UserSchema)
-      .findOneBy({ email: key });
-    if (!user?.active || !verifyPassword(password, user.passwordHash)) {
-      this.failures.set(key, {
-        count: (failure && failure.until > Date.now() ? failure.count : 0) + 1,
-        until: Date.now() + 900000,
-      });
+  async login(email: string, password: string, remoteAddress = "local") {
+    const key = email.toLowerCase();
+    const accountKey =
+      "account:" + createHash("sha256").update(key).digest("hex");
+    this.limiter.take("ip:" + remoteAddress, 40, 60000);
+    this.limiter.take(accountKey, 8, 900000);
+    const user = await this.db.getRepository(UserSchema).findOne({
+      where: { email: key },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        permissions: true,
+        primaryAdmin: true,
+        active: true,
+        passwordHash: true,
+        tokenVersion: true,
+      },
+    });
+    const [salt, expected] = (user?.passwordHash ?? dummyHash).split(":");
+    const actual = (await derive(password, salt, 64)) as Buffer;
+    const encoded = Buffer.from(expected, "hex");
+    if (
+      !user?.active ||
+      actual.length !== encoded.length ||
+      !timingSafeEqual(actual, encoded)
+    ) {
       throw new UnauthorizedException("Credenciais inválidas.");
     }
-    this.failures.delete(key);
+    this.limiter.clear(accountKey);
     const actor = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
+      permissions: effectivePermissions(user),
+      primaryAdmin: user.primaryAdmin,
     };
     return {
-      token: jwt.sign({}, jwtSecret(), {
+      token: jwt.sign({ ver: user.tokenVersion ?? 0 }, jwtSecret(), {
         subject: user.id,
         expiresIn: "8h",
         algorithm: "HS256",
@@ -80,25 +115,61 @@ export class AuthGuard implements CanActivate {
     if (this.reflector.get<boolean>("public", context.getHandler()))
       return true;
     const request = context.switchToHttp().getRequest();
-    const token = request.headers.authorization?.replace(/^Bearer /, "");
+    const authorization = request.headers.authorization;
+    const token =
+      typeof authorization === "string" &&
+      authorization.length < 4096 &&
+      authorization.startsWith("Bearer ")
+        ? authorization.slice(7)
+        : "";
     try {
       const decoded = jwt.verify(token ?? "", jwtSecret(), {
         algorithms: ["HS256"],
         issuer: "patrimonio",
       });
       if (typeof decoded === "string" || !decoded.sub) throw new Error();
-      const user = await this.db
-        .getRepository(UserSchema)
-        .findOneBy({ id: decoded.sub });
-      if (!user?.active) throw new Error();
+      const user = await this.db.getRepository(UserSchema).findOne({
+        where: { id: decoded.sub },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          permissions: true,
+          primaryAdmin: true,
+          active: true,
+          tokenVersion: true,
+        },
+      });
+      if (!user?.active || decoded.ver !== (user.tokenVersion ?? 0))
+        throw new Error();
       request.user = {
         id: user.id,
         role: user.role,
+        permissions: effectivePermissions(user),
+        primaryAdmin: user.primaryAdmin,
         name: user.name,
         email: user.email,
       };
     } catch {
       throw new UnauthorizedException("Faça login novamente.");
+    }
+    const any = this.reflector.getAllAndOverride<Permission[]>(
+      "anyPermissions",
+      [context.getHandler(), context.getClass()],
+    );
+    if (any && !any.some((p) => request.user.permissions.includes(p)))
+      throw new ForbiddenException("Você não tem permissão para esta tarefa.");
+    const required = this.reflector.getAllAndOverride<Permission[]>(
+      "permissions",
+      [context.getHandler(), context.getClass()],
+    );
+    if (required) {
+      if (!required.every((p) => request.user.permissions.includes(p)))
+        throw new ForbiddenException(
+          "Você não tem permissão para esta tarefa.",
+        );
+      return true;
     }
     const roles = this.reflector.getAllAndOverride<Role[]>("roles", [
       context.getHandler(),

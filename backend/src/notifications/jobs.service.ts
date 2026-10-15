@@ -34,9 +34,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       await this.assets.expire();
       await this.sendPending();
     } catch (e) {
-      this.logger.error(
-        e instanceof Error ? e.message : "Erro nas tarefas periódicas",
-      );
+      this.logger.error("Erro nas tarefas periódicas (detalhes omitidos).");
     } finally {
       this.running = false;
     }
@@ -47,6 +45,7 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT ?? 587),
       secure: process.env.SMTP_SECURE === "true",
+      requireTLS: process.env.NODE_ENV === "production",
       auth: process.env.SMTP_USER
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD }
         : undefined,
@@ -94,7 +93,8 @@ export class JobsService implements OnModuleInit, OnModuleDestroy {
           item.lastError = null;
           sent++;
         } catch (e) {
-          item.lastError = e instanceof Error ? e.message : "Falha SMTP";
+          item.lastError =
+            "Falha SMTP; verifique a configuração e disponibilidade do serviço";
         }
         await m.getRepository(S.OutboxSchema).save(item);
         return item.status === "SENT";

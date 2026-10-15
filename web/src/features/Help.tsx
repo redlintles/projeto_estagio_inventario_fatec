@@ -24,9 +24,12 @@ const guides: {
     purpose:
       "Consulte os bens, suas fotos, localização e histórico; registre as operações patrimoniais nos detalhes de cada ativo.",
     steps: [
-      "Combine os filtros de patrimônio, grupo, descrição, status e localização para encontrar o bem. Limpe os campos para ampliar a busca.",
+      "Combine os filtros de patrimônio, grupo, descrição, status, unidade cadastrada e localização para encontrar o bem. Limpe os campos para ampliar a busca.",
+      "Para localizar vários bens de uma vez, marque as caixas na lista, escolha uma localização e clique em Aplicar localização. A seleção manual aceita até 500 ativos; Selecionar tudo com os filtros atuais abrange todas as páginas. Use Sem unidade vinculada ou Sem localização para encontrar cadastros incompletos. Mudar os filtros limpa a seleção. Apenas bens Incorporados ou Ativos aceitam essa operação. O administrador também pode cadastrar a localização nessa mesma área.",
+      "Para vincular unidades em lote, marque os bens na lista e use o cartão Vincular unidade. Escolha uma unidade ativa e clique em Aplicar unidade. O vínculo cadastrado muda sem alterar a coluna Unidade original da planilha. Cada operação concluída limpa a seleção; selecione novamente para outra ação.",
+      "Antes de aplicar unidade ou localização, confira no pop-up quantos bens realmente serão alterados e o destino escolhido. Cancelar não altera os ativos. Em Histórico de alterações em lote, escolha Desfazer lote para restaurar os valores anteriores daquela operação. Alterações posteriores em qualquer bem bloqueiam a reversão de todo o lote para preservar os dados mais recentes. O histórico permanece após sair e entrar no sistema. Depois de desfazer, use Refazer lote para reaplicar o valor original aos mesmos bens. Essa ação possui permissão própria, exige destino ativo e é bloqueada se algum bem mudar após a reversão. Ver versões do lote mostra cada aplicação, reversão e reaplicação com data e responsável. Os lotes são processados em blocos dentro de uma única transação; aguarde a confirmação antes de repetir.",
       "Clique em Detalhes → para consultar os dados, baixar fotos e acompanhar o Histórico. Expanda Dados antes e depois para entender uma alteração.",
-      "Para um ativo ativo, selecione uma localização e clique em Atualizar localização. Para disponibilizá-lo, envie uma foto JPEG ou PNG, selecione a condição física de 1 a 5 e clique em Disponibilizar ativo.",
+      "Para um bem Incorporado ou Ativo, selecione uma localização e clique em Atualizar localização. Para disponibilizá-lo, envie uma foto JPEG ou PNG, selecione a condição física de 1 a 5 e clique em Disponibilizar ativo.",
       "Para um ativo disponibilizado sem reserva ativa, escolha a unidade de destino e clique em Registrar reserva. Registre Iniciar transporte quando ele sair e Confirmar transferência quando a movimentação estiver concluída.",
       "Se a movimentação não ocorrer, use Cancelar reserva. O prazo do ativo disponibilizado reinicia a partir do cancelamento.",
       "Quando o status for A baixar, informe a justificativa e use Confirmar baixa definitiva somente após a autorização institucional.",
@@ -66,13 +69,14 @@ const guides: {
       "Cadastre a base patrimonial ou atualize dados por planilha, revisando as diferenças antes de gravar.",
     steps: [
       "Clique em Baixar modelo de planilha → e preencha o arquivo seguindo as colunas do modelo. Preserve o número patrimonial dos bens já cadastrados.",
-      "Selecione um arquivo .xlsx ou .xls e clique em Analisar planilha. Essa etapa gera uma prévia; ainda não aplica a importação.",
+      "Escolha primeiro a unidade cadastrada à qual os bens pertencem. O vínculo é separado da coluna Unidade original, que permanece intacta. Mudanças no vínculo de bens existentes aparecem como conflitos.",
+      "Selecione um arquivo .xlsx ou .xls. Os novos bens válidos são importados imediatamente; os registros idênticos são mantidos e apenas os conflitos aparecem para revisão.",
       "Leia os erros de cada linha. Corrija as linhas inválidas no arquivo e analise novamente para importá-las.",
-      "Compare Atual e Planilha. Para registros existentes, a opção inicial preserva os dados atuais; use Aceitar planilha ou marque os campos que deseja atualizar. Use Manter atual / ignorar para pular uma linha.",
-      "Revise também os novos registros, que são selecionados para importar quando válidos. Clique em Aplicar decisões para confirmar.",
+      "Compare Atual e Planilha. Para cada conflito, escolha Manter atual / ignorar ou Aceitar planilha. A escolha fica destacada; também é possível selecionar campos individualmente. Use Manter atual / ignorar para pular uma linha.",
+      "Após escolher uma opção para todos os conflitos, clique em Salvar escolhas. Os registros novos já foram salvos automaticamente e não precisam dessa confirmação.",
       "Se um registro tiver sido alterado por outra pessoa desde a prévia, analise a planilha novamente e revise a comparação atualizada.",
     ],
-    tip: "A reimportação preserva localização, fotos, condição, reservas, divergências e histórico. Ativos ausentes do arquivo não são removidos. Um número patrimonial diferente é tratado como outro ativo.",
+    tip: "A reimportação preserva UUID, localização, fotos, condição e histórico. O NroPatrimonio concilia registros existentes; Código único pode se repetir. Uma reserva em andamento impede trocar o status até que seja resolvida. Ativos ausentes do arquivo não são removidos. Um número patrimonial diferente é tratado como outro ativo.",
   },
   {
     section: "locations",
@@ -81,7 +85,7 @@ const guides: {
     steps: [
       "Consulte os códigos, descrições, prédio, andar e situação dos espaços cadastrados.",
       "Como administrador, preencha Nova localização: Código e Descrição são obrigatórios; Prédio, Andar e Observações complementam o cadastro.",
-      "Clique em Cadastrar localização. Depois, associe os bens ao espaço nos detalhes do ativo.",
+      "Clique em Cadastrar localização. Depois, associe os bens ao espaço nos detalhes do ativo ou pela seleção em lote na lista de Ativos.",
       "Use a edição disponível na linha para corrigir os dados. Use Inativar quando o espaço deixar de ser utilizado e Ativar para disponibilizá-lo novamente.",
     ],
     tip: "Localizações inativas deixam de aparecer nas opções de novos inventários e de atualização de localização. Inativar não apaga o cadastro.",
@@ -89,7 +93,7 @@ const guides: {
   {
     section: "units",
     purpose:
-      "Cadastre as unidades que podem receber bens em uma reserva ou transferência.",
+      "Cadastre as unidades vinculadas aos bens na importação e utilizadas em reservas ou transferências.",
     steps: [
       "Consulte o código, nome e e-mail das unidades cadastradas.",
       "Como administrador, preencha Código, Nome e E-mail em Nova unidade e clique em Cadastrar unidade.",
@@ -103,13 +107,13 @@ const guides: {
     purpose:
       "Gerencie as contas e defina quem pode consultar, operar ou administrar o sistema.",
     steps: [
-      "Em Novo usuário, informe Nome, E-mail, Senha inicial com pelo menos 12 caracteres e Perfil.",
+      "Abra Cadastrar novo usuário, informe Nome, E-mail e Senha inicial com pelo menos 12 caracteres e escolha um Modelo de acesso.",
       "Escolha Consulta para leitura, Responsável patrimonial para as operações patrimoniais ou Administrador para gerenciar também os cadastros e configurações.",
       "Clique em Cadastrar usuário. Informe as credenciais ao usuário pelo canal apropriado da instituição.",
-      "Use a edição da conta para alterar o perfil ou definir uma Nova senha. Deixe a senha opcional vazia para preservar a atual.",
+      "Em Editar acesso e permissões, marque Personalizar permissões deste usuário para escolher cada tarefa. As consultas necessárias são incluídas automaticamente. Desmarque a personalização para restaurar as permissões do modelo. Salve o acesso; as sessões anteriores serão invalidadas. A senha opcional vazia preserva a senha atual.",
       "Use Desativar para bloquear uma conta que não deve mais acessar o sistema, ou Ativar para restabelecer o acesso. A sua própria conta não pode ser desativada pelo botão da lista.",
     ],
-    tip: "Este menu é exclusivo do administrador. Se esquecer sua senha, solicite a um administrador que defina uma nova em sua conta.",
+    tip: "Somente administradores gerenciam contas. O administrador principal mantém acesso global, não pode ser desativado nem ter permissões reduzidas, e somente ele altera sua própria senha. Os demais administradores também têm acesso global. Contas com tarefas limitadas devem usar Consulta ou Responsável patrimonial com permissões personalizadas.",
   },
   {
     section: "settings",
@@ -128,11 +132,11 @@ const guides: {
     purpose:
       "Exporte os registros para consulta e acompanhamento em um programa de planilhas.",
     steps: [
-      "Escolha o relatório: Ativos por localização, Conferências de inventário, Disponibilizados, Transferidos, Baixados, Divergências ou Histórico de movimentações.",
-      "Clique no botão correspondente para baixar o arquivo CSV.",
-      "Abra o arquivo no seu programa de planilhas. Se necessário, use a função de importar CSV para reconhecer corretamente as colunas e os caracteres.",
+      "Escolha o conteúdo do relatório: Todos os ativos, Conferências de inventário, Disponibilizados, Transferidos, Baixados, Divergências ou Histórico de movimentações.",
+      "Combine os filtros de patrimônio, descrição, grupo, status, unidade e localização. Use Sem unidade vinculada ou Sem localização para consultar cadastros incompletos. Escolha as datas do período; nos relatórios de ativos ele corresponde à incorporação, e nos demais à movimentação, registro da divergência ou conferência.",
+      "Clique em Visualizar prévia para conferir a quantidade total, os critérios e até 30 linhas. Selecione Excel (XLSX), LibreOffice / OpenDocument (ODS) ou CSV e clique em Exportar. O arquivo inclui todos os resultados, em todas as páginas. XLSX e ODS incluem a aba Sobre o relatório com os critérios.",
     ],
-    tip: "Os ativos baixados continuam disponíveis no histórico. Editar o CSV baixado não altera os registros no sistema.",
+    tip: "Os ativos baixados continuam disponíveis no histórico. Editar o arquivo baixado não altera os registros no sistema. UUIDs internos são substituídos por patrimônio, nomes e descrições. Unidade e localização correspondem ao cadastro atual. Alterações feitas após a prévia aparecem na exportação.",
   },
   {
     section: "audit",
@@ -165,7 +169,8 @@ export function Help({ state }: { state: AppState }) {
           </li>
           <li>
             Em <strong>Importar planilha</strong>, baixe o modelo, preencha a
-            base e revise a prévia antes de aplicar.
+            base e selecione o arquivo. Os novos bens válidos são importados
+            automaticamente; revise apenas os conflitos.
           </li>
           <li>
             Em <strong>Ativos</strong>, associe os bens às localizações e
@@ -218,10 +223,7 @@ export function Help({ state }: { state: AppState }) {
             <h2 id={`help-title-${guide.section}`}>
               {sections[guide.section]}
             </h2>
-            {(state.admin ||
-              !["imports", "users", "settings", "audit"].includes(
-                guide.section,
-              )) && (
+            {state.canAccessSection(guide.section) && (
               <button
                 className="secondary"
                 onClick={() => {
@@ -248,6 +250,11 @@ export function Help({ state }: { state: AppState }) {
       <section className="panel" aria-labelledby="help-status">
         <h2 id="help-status">O que significa cada status do ativo?</h2>
         <dl>
+          <dt>Incorporado (I)</dt>
+          <dd>
+            Bem incorporado na base oficial. A conferência correta em inventário
+            muda o status para Ativo; também pode ser disponibilizado.
+          </dd>
           <dt>Ativo (A)</dt>
           <dd>
             Bem em uso, que pode ter a localização atualizada ou ser

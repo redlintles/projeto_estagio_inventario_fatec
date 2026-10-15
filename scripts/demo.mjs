@@ -94,6 +94,6 @@ if (action === "stop") {
       }),
   );
   console.log(
-    `\nDemonstração pronta: http://localhost:8080\nLogin: ${config.BOOTSTRAP_EMAIL}\nSenha: ${config.BOOTSTRAP_PASSWORD}\n\nPara parar: npm run demo:stop\nCredenciais locais: .demo/.env`,
+    `\nDemonstração pronta: http://localhost:8080\nLogin: ${config.BOOTSTRAP_EMAIL}\n\nPara parar: npm run demo:stop\nCredenciais locais: .demo/.env (arquivo privado; a senha não é impressa no terminal)`,
   );
 }

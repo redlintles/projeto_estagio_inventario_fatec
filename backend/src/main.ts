@@ -4,9 +4,11 @@ import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
 import { jwtSecret } from "./auth/auth";
+import { secureHttp } from "./security";
 async function main() {
   jwtSecret();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+  secureHttp(app);
   app.setGlobalPrefix("api");
   app.enableCors({
     origin: (process.env.WEB_ORIGIN ?? "http://localhost:5173").split(","),
@@ -20,11 +22,12 @@ async function main() {
     .setVersion("1.0")
     .addBearerAuth()
     .build();
-  SwaggerModule.setup(
-    "api/docs",
-    app,
-    SwaggerModule.createDocument(app, config),
-  );
+  if (process.env.ENABLE_API_DOCS === "true")
+    SwaggerModule.setup(
+      "api/docs",
+      app,
+      SwaggerModule.createDocument(app, config),
+    );
   await app.listen(Number(process.env.PORT ?? 3000), "0.0.0.0");
 }
 void main();

@@ -24,6 +24,8 @@ async function bootstrap() {
       email,
       passwordHash: hashPassword(password),
       role: "ADMIN",
+      primaryAdmin: true,
+      permissions: null,
       active: true,
     });
     console.log("Administrador criado. Remova BOOTSTRAP_PASSWORD do ambiente.");

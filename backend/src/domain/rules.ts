@@ -36,6 +36,7 @@ export const officialFields = [
   "originUnit",
   "incorporationDate",
   "value",
+  "status",
 ] as const;
 export function compareFields(
   current: Record<string, string>,

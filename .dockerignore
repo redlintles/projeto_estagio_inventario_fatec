@@ -7,3 +7,11 @@ node_modules
 **/.gradle
 mobile
 briefing*
+
+.demo
+entregaveis
+**/*.xlsx
+**/*.xls
+**/*.dump
+**/*.sql
+**/.env.*

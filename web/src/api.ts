@@ -7,6 +7,8 @@ export interface User {
   email: string;
   role: "ADMIN" | "PATRIMONIAL" | "CONSULTA";
   active?: boolean;
+  permissions?: import("./permissions").Permission[] | null;
+  primaryAdmin?: boolean;
 }
 export interface Asset {
   id: string;
@@ -18,6 +20,7 @@ export interface Asset {
   incorporationDate: string;
   value: string;
   status: string;
+  unitId: string | null;
   locationId: string | null;
   condition: number | null;
   version: number;
@@ -89,11 +92,17 @@ export interface ImportRow {
   errors: string[];
 }
 export interface ImportBatch {
+  unitId?: string | null;
+  unitName?: string | null;
+  imported: number;
+  unchanged: number;
+  issues: { line: number; patrimony: string; errors: string[] }[];
   id: string;
   rows: ImportRow[];
   filename: string;
 }
 export const statusLabels: Record<string, string> = {
+  I: "Incorporado",
   A: "Ativo",
   D: "Disponibilizado",
   B: "A baixar",
@@ -104,11 +113,21 @@ export const fieldLabels: Record<string, string> = {
   patrimony: "Patrimônio",
   description: "Descrição",
   group: "Grupo",
-  uniqueCode: "Código de barras",
+  uniqueCode: "Código único da planilha",
   originUnit: "Unidade de origem",
   incorporationDate: "Incorporação",
-  value: "Valor",
+  value: "Valor R$",
+  status: "Status",
+  unitId: "Unidade cadastrada",
 };
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+  }
+}
 export async function request<T>(
   path: string,
   token: string,
@@ -128,8 +147,9 @@ export async function request<T>(
     const data = await response
       .json()
       .catch(() => ({ message: "Falha de comunicação." }));
-    throw new Error(
+    throw new ApiError(
       typeof data.message === "string" ? data.message : JSON.stringify(data),
+      response.status,
     );
   }
   return response.json();
@@ -145,4 +165,9 @@ export async function download(path: string, token: string, filename: string) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function formatMoney(value: string) {
+  const [whole, cents = ""] = value.split(".");
+  return `R$ ${BigInt(whole).toLocaleString("pt-BR")},${cents.padEnd(2, "0")}`;
 }

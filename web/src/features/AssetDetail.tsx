@@ -12,11 +12,18 @@ export function AssetDetail({ state }: { state: AppState }) {
     detail,
     setDetail,
     filter,
-    operator,
+    can,
     run,
     refreshDetail,
     form,
   } = state;
+  const operator = [
+    "photos.upload",
+    "assets.location",
+    "assets.available",
+    "assets.reserve",
+    "assets.writeOff",
+  ].some((p) => can(p as import("../permissions").Permission));
   return (
     <>
       {section === "assets" && detail && (
@@ -28,6 +35,7 @@ export function AssetDetail({ state }: { state: AppState }) {
             <div className="detail-heading">
               <div>
                 <p className="eyebrow">PATRIMÔNIO {detail.patrimony}</p>
+                <small>ID interno: {detail.id}</small>
                 <h2>{detail.description}</h2>
               </div>
               <span className={`badge status-${detail.status}`}>
@@ -38,7 +46,14 @@ export function AssetDetail({ state }: { state: AppState }) {
               {Object.entries(A.fieldLabels).map(([key, label]) => (
                 <React.Fragment key={key}>
                   <dt>{label}</dt>
-                  <dd>{String(detail[key as keyof A.AssetDetail])}</dd>
+                  <dd>
+                    {key === "status"
+                      ? A.statusLabels[detail.status]
+                      : key === "unitId"
+                        ? (units.find((u) => u.id === detail.unitId)?.name ??
+                          "Não vinculada")
+                        : String(detail[key as keyof A.AssetDetail])}
+                  </dd>
                 </React.Fragment>
               ))}
             </dl>
@@ -51,94 +66,105 @@ export function AssetDetail({ state }: { state: AppState }) {
           {operator && detail.status !== "X" && (
             <div className="panel">
               <h2>Operações</h2>
-              <form
-                className="inline-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const f = new FormData(e.currentTarget);
-                  void run(async () => {
-                    await A.request(`assets/${detail.id}/photos`, token, f);
-                    await refreshDetail(detail.id);
-                  });
-                }}
-              >
-                <label>
-                  Adicionar foto
-                  <input
-                    type="file"
-                    name="file"
-                    accept="image/jpeg,image/png"
-                    required
-                  />
-                </label>
-                <button disabled={busy}>Enviar foto</button>
-              </form>
-              {detail.status === "A" && (
+              {can("photos.upload") && (
+                <form
+                  className="inline-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = new FormData(e.currentTarget);
+                    void run(async () => {
+                      await A.request(`assets/${detail.id}/photos`, token, f);
+                      await refreshDetail(detail.id);
+                    });
+                  }}
+                >
+                  <label>
+                    Adicionar foto
+                    <input
+                      type="file"
+                      name="file"
+                      accept="image/jpeg,image/png"
+                      required
+                    />
+                  </label>
+                  <button disabled={busy}>Enviar foto</button>
+                </form>
+              )}
+              {["I", "A"].includes(detail.status) && (
                 <>
-                  <form
-                    className="inline-form"
-                    onSubmit={(e) => {
-                      const b = form(e);
-                      void run(async () => {
-                        await A.request(`assets/${detail.id}/location`, token, {
-                          ...b,
-                          expectedVersion: detail.version,
+                  {can("assets.location") && (
+                    <form
+                      className="inline-form"
+                      onSubmit={(e) => {
+                        const b = form(e);
+                        void run(async () => {
+                          await A.request(
+                            `assets/${detail.id}/location`,
+                            token,
+                            {
+                              ...b,
+                              expectedVersion: detail.version,
+                            },
+                          );
+                          await refreshDetail(detail.id);
                         });
-                        await refreshDetail(detail.id);
-                      });
-                    }}
-                  >
-                    <label>
-                      Localização
-                      <select name="locationId" required>
-                        <option value="">Selecione</option>
-                        {locations
-                          .filter((l) => l.active)
-                          .map((l) => (
-                            <option key={l.id} value={l.id}>
-                              {l.description}
+                      }}
+                    >
+                      <label>
+                        Localização
+                        <select name="locationId" required>
+                          <option value="">Selecione</option>
+                          {locations
+                            .filter((l) => l.active)
+                            .map((l) => (
+                              <option key={l.id} value={l.id}>
+                                {l.description}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                      <button disabled={busy}>Atualizar localização</button>
+                    </form>
+                  )}
+                  {can("assets.available") && (
+                    <form
+                      className="inline-form"
+                      onSubmit={(e) => {
+                        const b = form(e);
+                        void run(async () => {
+                          await A.request(
+                            `assets/${detail.id}/available`,
+                            token,
+                            {
+                              expectedVersion: detail.version,
+                              condition: Number(b.condition),
+                            },
+                          );
+                          await refreshDetail(detail.id);
+                        });
+                      }}
+                    >
+                      <label>
+                        Condição física
+                        <select name="condition">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <option key={n} value={n}>
+                              {n} / 5
                             </option>
                           ))}
-                      </select>
-                    </label>
-                    <button disabled={busy}>Atualizar localização</button>
-                  </form>
-                  <form
-                    className="inline-form"
-                    onSubmit={(e) => {
-                      const b = form(e);
-                      void run(async () => {
-                        await A.request(
-                          `assets/${detail.id}/available`,
-                          token,
-                          {
-                            expectedVersion: detail.version,
-                            condition: Number(b.condition),
-                          },
-                        );
-                        await refreshDetail(detail.id);
-                      });
-                    }}
-                  >
-                    <label>
-                      Condição física
-                      <select name="condition">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <option key={n} value={n}>
-                            {n} / 5
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <button disabled={busy}>Disponibilizar ativo</button>
-                    <small>É necessário anexar uma foto.</small>
-                  </form>
+                        </select>
+                      </label>
+                      <button disabled={busy}>Disponibilizar ativo</button>
+                      <small>É necessário anexar uma foto.</small>
+                    </form>
+                  )}
                 </>
               )}
               {detail.status === "D" &&
                 !detail.reservations.some((r) =>
                   ["RESERVED", "IN_TRANSIT"].includes(r.status),
-                ) && (
+                ) &&
+                can("assets.reserve") && (
                   <form
                     className="inline-form"
                     onSubmit={(e) => {
@@ -169,7 +195,7 @@ export function AssetDetail({ state }: { state: AppState }) {
                     <button disabled={busy}>Registrar reserva</button>
                   </form>
                 )}
-              {detail.reservations
+              {(can("assets.reserve") ? detail.reservations : [])
                 .filter((r) => ["RESERVED", "IN_TRANSIT"].includes(r.status))
                 .map((r) => (
                   <div className="reservation" key={r.id}>
@@ -219,7 +245,7 @@ export function AssetDetail({ state }: { state: AppState }) {
                     </small>
                   </div>
                 ))}
-              {detail.status === "B" && (
+              {detail.status === "B" && can("assets.writeOff") && (
                 <form
                   className="inline-form"
                   onSubmit={(e) => {

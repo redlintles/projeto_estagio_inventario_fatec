@@ -3,7 +3,8 @@ import React from "react";
 import * as A from "../api";
 import { AppState } from "../app-state";
 export function Locations({ state }: { state: AppState }) {
-  const { token, section, busy, locations, admin, run, form } = state;
+  const { token, section, busy, locations, can, run, form } = state;
+  const admin = can("locations.manage");
   return (
     <>
       {section === "locations" && (

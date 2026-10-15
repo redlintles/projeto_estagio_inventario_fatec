@@ -1,3 +1,4 @@
+import { effectivePermissions, Permission } from "./permissions";
 import React, { useState, useEffect } from "react";
 import * as A from "./api";
 import { Section } from "./navigation";
@@ -14,9 +15,10 @@ export function usePatrimonio() {
     [units, setUnits] = useState<A.Unit[]>([]),
     [detail, setDetail] = useState<A.AssetDetail | null>(null),
     [dashboard, setDashboard] = useState<{
+      totalValue: string;
       counts: Record<string, number>;
       pendingDivergences: number;
-    }>({ counts: {}, pendingDivergences: 0 }),
+    }>({ totalValue: "0.00", counts: {}, pendingDivergences: 0 }),
     [inventories, setInventories] = useState<A.Inventory[]>([]),
     [inventory, setInventory] = useState<A.Inventory | null>(null),
     [divergences, setDivergences] = useState<A.Divergence[]>([]),
@@ -35,9 +37,67 @@ export function usePatrimonio() {
       description: "",
       status: "",
       locationId: "",
+      unitId: "",
     });
-  const admin = user?.role === "ADMIN",
-    operator = user?.role !== "CONSULTA";
+  const admin = user?.role === "ADMIN";
+  const can = (permission: Permission) =>
+    !!user && effectivePermissions(user).includes(permission);
+  const operator =
+    !!user &&
+    effectivePermissions(user).some(
+      (p) =>
+        ![
+          "locations.view",
+          "units.view",
+          "dashboard.view",
+          "assets.view",
+          "inventories.view",
+          "divergences.view",
+          "reports.export",
+        ].includes(p),
+    );
+  function canAccessSection(target: Section) {
+    const required: Partial<Record<Section, Permission>> = {
+      locations: "locations.view",
+      units: "units.view",
+      dashboard: "dashboard.view",
+      assets: "assets.view",
+      inventories: "inventories.view",
+      divergences: "divergences.view",
+      imports: "imports.manage",
+      settings: "settings.manage",
+      reports: "reports.export",
+      audit: "audit.view",
+    };
+    return target === "users"
+      ? admin
+      : required[target]
+        ? can(required[target]!)
+        : true;
+  }
+  useEffect(() => {
+    if (user && !canAccessSection(section)) {
+      setSection(
+        (
+          [
+            "dashboard",
+            "assets",
+            "inventories",
+            "divergences",
+            "reports",
+            "imports",
+            "locations",
+            "units",
+            "settings",
+            "audit",
+            "users",
+            "help",
+          ] as Section[]
+        ).find(canAccessSection) ?? "help",
+      );
+      setDetail(null);
+    }
+  }, [user, section]);
   async function run(
     action: () => Promise<unknown>,
     message = "Operação concluída.",
@@ -61,12 +121,17 @@ export function usePatrimonio() {
   useEffect(() => {
     if (!token) return;
     let active = true;
-    void Promise.all([
-      A.request<A.User>("auth/me", token),
-      A.request<A.Location[]>("locations", token),
-      A.request<A.Unit[]>("units", token),
-    ])
-      .then(([u, l, n]) => {
+    void A.request<A.User>("auth/me", token)
+      .then(async (u) => {
+        const allowed = effectivePermissions(u);
+        const [l, n] = await Promise.all([
+          allowed.includes("locations.view")
+            ? A.request<A.Location[]>("locations", token)
+            : Promise.resolve([]),
+          allowed.includes("units.view")
+            ? A.request<A.Unit[]>("units", token)
+            : Promise.resolve([]),
+        ]);
         if (active) {
           setUser(u);
           setLocations(l);
@@ -81,7 +146,7 @@ export function usePatrimonio() {
     };
   }, [token, revision]);
   useEffect(() => {
-    if (!token || !user) return;
+    if (!token || !user || !canAccessSection(section)) return;
     let active = true;
     const load = async () => {
       switch (section) {
@@ -191,6 +256,8 @@ export function usePatrimonio() {
     setFilter,
     admin,
     operator,
+    can,
+    canAccessSection,
     run,
     refreshDetail,
     form,

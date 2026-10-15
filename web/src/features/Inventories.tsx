@@ -12,10 +12,11 @@ export function Inventories({ state }: { state: AppState }) {
     inventory,
     setInventory,
     filter,
-    operator,
+    can,
     run,
     form,
   } = state;
+  const operator = can("inventories.manage");
   return (
     <>
       {section === "inventories" && (

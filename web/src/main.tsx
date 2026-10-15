@@ -64,6 +64,7 @@ function App() {
     setFilter,
     admin,
     operator,
+    canAccessSection,
     run,
     refreshDetail,
     form,
@@ -144,10 +145,7 @@ function App() {
         </div>
         <nav>
           {(Object.keys(sections) as Section[])
-            .filter(
-              (s) =>
-                admin || !["imports", "users", "settings", "audit"].includes(s),
-            )
+            .filter(canAccessSection)
             .map((s) => (
               <button
                 key={s}
@@ -163,10 +161,31 @@ function App() {
           <strong>{user.name}</strong>
           <small>{user.role}</small>
           <button
-            onClick={() => {
+            onClick={async () => {
+              try {
+                await A.request("auth/logout", token, {});
+              } catch (error) {
+                if (!(error instanceof A.ApiError && error.status === 401)) {
+                  setError(
+                    "Não foi possível encerrar a sessão no servidor. Tente novamente com conexão.",
+                  );
+                  return;
+                }
+              }
               sessionStorage.removeItem("token");
               setToken("");
               setUser(null);
+              setAssets([]);
+              setLocations([]);
+              setUnits([]);
+              setDetail(null);
+              setInventories([]);
+              setInventory(null);
+              setDivergences([]);
+              setUsers([]);
+              setAudit([]);
+              setBatch(null);
+              setSettings([]);
             }}
           >
             Sair

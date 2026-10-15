@@ -3,7 +3,8 @@ import React from "react";
 import * as A from "../api";
 import { AppState } from "../app-state";
 export function Units({ state }: { state: AppState }) {
-  const { token, section, busy, units, admin, run, form } = state;
+  const { token, section, busy, units, can, run, form } = state;
+  const admin = can("units.manage");
   return (
     <>
       {section === "units" && (

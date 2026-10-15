@@ -70,3 +70,5 @@ Restaure fotos com os mesmos nomes e permissões de leitura/gravação do proces
 6. Distribuir versão Android compatível sem limpar seu SQLite.
 
 Mudanças no protocolo offline precisam manter compatibilidade com operações coletadas pela versão anterior. Não remover ou reinterpretar campos enquanto houver aparelhos com pendências.
+
+Consulte também `docs/seguranca.md` antes de carregar dados reais. As migrations desta versão invalidam tokens anteriores: entre novamente no portal e no Android, sem apagar a fila offline.

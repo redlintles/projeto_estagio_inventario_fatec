@@ -19,8 +19,10 @@ export const assetInput = z
     description: z.string().trim().min(1).max(255),
     group: z.string().trim().min(1).max(100),
     uniqueCode: z.string().trim().min(1).max(50),
+    unitId: uuid.optional(),
     originUnit: z.string().trim().min(1).max(20),
     incorporationDate: z.iso.date(),
+    status: z.enum(["I", "A", "X"]).default("I"),
     value: z.string().regex(/^\d{1,13}(\.\d{1,2})?$/),
   })
   .strict();
