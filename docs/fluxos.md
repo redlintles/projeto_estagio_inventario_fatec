@@ -3,9 +3,9 @@
 ## Implantação da base
 
 1. Criar administrador, localizações e unidades.
-2. Baixar o modelo e comparar com a planilha oficial quando ela estiver disponível.
+2. Conferir o modelo institucional e escolher a unidade cadastrada à qual a planilha pertence.
 3. Selecionar o arquivo para importar automaticamente os novos bens válidos. Corrigir linhas inválidas e resolver somente os conflitos, salvando as escolhas.
-4. Usar o primeiro inventário para preencher localizações e conferir a situação física.
+4. Usar os filtros e a seleção em lote de Ativos para preencher unidades/localizações ausentes; depois conferir a situação física em inventário.
 
 Uma importação não remove ativos ausentes do arquivo. O número patrimonial identifica o registro na reimportação. Mudanças nesse identificador exigem atenção: um patrimônio diferente será tratado como outro ativo.
 
@@ -27,7 +27,7 @@ A foto pode ficar pendente depois da conferência. Nesse caso o item já existe 
 
 ## Disponibilização e prazo
 
-Ativo A + foto + nota física 1–5 → D, data de disponibilização, histórico e e-mail em fila. A lista de destinatários é configurada na tela Parâmetros. A API não precisa esperar o SMTP para confirmar a operação.
+Incorporado I ou Ativo A + foto + nota física 1–5 → D, data de disponibilização, histórico e e-mail em fila. A lista de destinatários é configurada na tela Parâmetros. A API não precisa esperar o SMTP para confirmar a operação.
 
 Sem reserva, se o tempo superar PRAZO_BAIXA_DIAS, D → B e uma notificação ao CPS é enfileirada. A tarefa verifica a cada minuto, permitindo execução diária ou externa no futuro. Comparação é estrita: exatamente 20 dias não ultrapassa um parâmetro 20.
 
@@ -44,3 +44,11 @@ Somente B permite baixa. Informe justificativa; o servidor grava X e histórico 
 ## Reimportação
 
 A tela apresenta atual e planilha lado a lado. Escolha manter o atual, aceitar a planilha ou selecionar campos individuais. Localização, fotos, condição, reservas, divergências e histórico não são apagados. Se outro usuário alterar o ativo depois da prévia, a aplicação é recusada e exige nova comparação.
+
+## Alterações em lote e relatórios
+
+Em Ativos, combine filtros (incluindo Sem unidade vinculada e Sem localização) e marque registros ou use Selecionar tudo com os filtros atuais, abrangendo todas as páginas. Escolha unidade ou localização ativa. O modal escurece o fundo e mostra o destino e quantos bens efetivamente mudarão; cancelar não aplica o lote. Apenas Incorporados e Ativos aceitam essas operações.
+
+Histórico de alterações em lote preserva o lote original e suas versões. Desfazer restaura os valores anteriores; Refazer reaplica o destino original aos mesmos bens. Cada tarefa exige a permissão correspondente. Qualquer alteração posterior em um dos bens bloqueia todo o desfazer/refazer; não há aplicação parcial. O destino precisa continuar ativo para refazer. O processamento ocorre em blocos de 500 dentro de uma transação.
+
+Em Relatórios, escolha conteúdo e critérios, confira a prévia e exporte CSV, XLSX ou ODS. Datas de históricos seguem São Paulo; nos relatórios de ativos, o período usa incorporação. Referências usam patrimônio, nomes e descrições. A exportação consulta novamente os dados; não é um retrato congelado da prévia. O limite é 20.000 bens candidatos ou registros por solicitação, com recusa explícita em vez de arquivo parcial. Divida a consulta usando filtros quando necessário.

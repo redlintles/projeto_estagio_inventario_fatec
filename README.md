@@ -2,6 +2,14 @@
 
 Sistema interno da unidade de ensino para importar a base patrimonial, conferir ativos por localização, registrar divergências e acompanhar disponibilização, reserva, transporte, transferência e baixa. O portal atende à gestão; o aplicativo Android atende à conferência física, inclusive em salas sem internet.
 
+## Funcionalidades atuais
+
+- Importação do modelo institucional: novos bens automaticamente, diferenças por campo para revisão, UUID interno e conteúdo original preservado.
+- Unidades e localizações na importação e por seleção em lote, inclusive todos os resultados dos filtros; confirmação em modal, histórico, desfazer e refazer com proteção contra alterações posteriores.
+- Relatórios com filtros e prévia em CSV, XLSX e ODS, referências legíveis e limite explícito de 20.000 bens candidatos ou registros por solicitação.
+- Contas com permissões por tarefa, administrador principal protegido e revogação de sessões após alterações de acesso.
+- Ajuda dentro do portal, com roteiro por menu, estados, coleta no celular e solução de dúvidas.
+
 ## Componentes
 
 | Diretório  | Responsabilidade                                        | Tecnologia                                    |

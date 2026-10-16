@@ -18,28 +18,30 @@ A especificação funcional da faculdade é a base do escopo. O entendimento do 
 - Reimportação apresenta os valores atual e importado e permite escolha por registro ou campo. Dados internos são preservados.
 - Login inicial local, com senha protegida por hash. Administrador acumula todas as permissões operacionais.
 - Outras unidades são cadastros de destino e destinatários, sem acesso externo obrigatório.
-- Sem planilha real disponível: implementar o formato descrito e fornecer um modelo para homologação.
+- O modelo institucional recebido é a fonte da importação: preservar campos, conciliar por NroPatrimonio e manter UUID interno. Novos registros válidos entram automaticamente; somente diferenças em registros existentes exigem escolha.
+- Unidade cadastrada é escolhida na importação, separada da coluna Unidade original. Unidade e localização podem ser atribuídas em lote com confirmação, histórico, desfazer e refazer.
+- Permissões por tarefa personalizáveis para contas não administrativas; administrador principal protegido.
 
 ## Funcionalidades e implementação
 
-| Requisito                  | Implementação                                                             |
-| -------------------------- | ------------------------------------------------------------------------- |
-| Importar Excel e validar   | Prévia persistida, erros por linha, duplicidades, aplicação transacional  |
-| Reimportar                 | Comparação de campos oficiais, controle de versão e decisões explícitas   |
-| Consultar ativos           | Filtros, detalhes, fotos, reservas e histórico                            |
-| Inventário por localização | Sessão, lista esperada, conferências, itens não conferidos                |
-| Divergências               | Registro e tratamento explícito; localização preservada até correção      |
-| Disponibilizar             | Foto obrigatória, condição, data, histórico e fila de e-mail              |
-| Reserva e transferência    | Reserva, transporte, confirmação ou cancelamento                          |
-| Monitorar prazo            | Tarefa periódica, regra estrita dias > parâmetro                          |
-| Baixar                     | Apenas B, justificativa obrigatória, transação em lote, sem exclusão      |
-| Dashboard e relatórios     | Indicadores, CSV por situação, conferências, divergências e movimentações |
-| Offline                    | SQLite, fila por usuário, UUID, reenvio idempotente e conflitos           |
-| Usuários e perfis          | Administração, patrimonial e consulta, autorização no servidor            |
+| Requisito                  | Implementação                                                                |
+| -------------------------- | ---------------------------------------------------------------------------- |
+| Importar Excel e validar   | Prévia persistida, erros por linha, duplicidades, aplicação transacional     |
+| Reimportar                 | Comparação de campos oficiais, controle de versão e decisões explícitas      |
+| Consultar ativos           | Filtros, detalhes, fotos, reservas e histórico                               |
+| Inventário por localização | Sessão, lista esperada, conferências, itens não conferidos                   |
+| Divergências               | Registro e tratamento explícito; localização preservada até correção         |
+| Disponibilizar             | Foto obrigatória, condição, data, histórico e fila de e-mail                 |
+| Reserva e transferência    | Reserva, transporte, confirmação ou cancelamento                             |
+| Monitorar prazo            | Tarefa periódica, regra estrita dias > parâmetro                             |
+| Baixar                     | Apenas B, justificativa obrigatória, transação em lote, sem exclusão         |
+| Dashboard e relatórios     | Indicadores e relatórios filtrados em CSV/XLSX/ODS, com referências legíveis |
+| Offline                    | SQLite, fila por usuário, UUID, reenvio idempotente e conflitos              |
+| Usuários e perfis          | Modelos de acesso, permissões por tarefa e autorização no servidor           |
 
 ## Estados oficiais
 
-`A` Ativo → `D` Disponibilizado → `B` A baixar → `X` Baixado.
+`I` Incorporado → `A` Ativo → `D` Disponibilizado → `B` A baixar → `X` Baixado.
 
 A partir de `D`, reserva e transporte podem levar a `T` Transferido. Reserva não acrescenta outro status patrimonial: seu estado fica na tabela própria. Não há retorno automático de `T` ou `X` para `A`.
 

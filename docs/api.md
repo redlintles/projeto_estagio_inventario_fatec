@@ -34,7 +34,7 @@ Consulta lê ativos, localizações, unidades, inventários, divergências, indi
 | GET/POST `/inventories`           | Listar ou iniciar com `{locationId}`                                                      |
 | GET `/inventories/:id`            | Sessão, itens e missingIds                                                                |
 | POST `/inventories/:id/scans`     | Conferência online                                                                        |
-| POST `/inventories/:id/close`     | Encerrar pelo responsável ou administrador                                                |
+| POST `/inventories/:id/close`     | Encerrar, com inventories.manage                                                          |
 | POST `/sync`                      | Aplicação idempotente de uma conferência offline                                          |
 | GET `/divergences`                | Filtros status, type, locationId, from e to                                               |
 | POST `/divergences/:id/resolve`   | `{resolution,newLocationId?}`                                                             |
@@ -43,9 +43,9 @@ Consulta lê ativos, localizações, unidades, inventários, divergências, indi
 | POST `/imports/:id/apply`         | Decisões por linha e campo                                                                |
 | POST `/assets/:id/photos`         | Multipart `file`; JPEG/PNG até 8 MB; eventId e uploadId opcionais na query                |
 | GET `/photos/:id`                 | Arquivo privado autenticado                                                               |
-| GET `/audit`                      | Últimas movimentações, administrador                                                      |
-| GET `/notifications`              | Situação das notificações, administrador                                                  |
-| POST `/jobs/run`                  | Verificação de prazo e tentativa de envio, administrador                                  |
+| GET `/audit`                      | Últimas movimentações, com audit.view                                                     |
+| GET `/notifications`              | Situação das notificações, com settings.manage                                            |
+| POST `/jobs/run`                  | Verificação de prazo e envio, com settings.manage                                         |
 | GET `/reports/:kind`              | Exportação filtrada CSV, XLSX ou ODS                                                      |
 
 Relatórios: `byLocation`, `inventories`, `available`, `transferred`, `writtenOff`, `divergences`, `movements`. Todos os relatórios aceitam os filtros descritos na seção Relatórios para leitura humana. CSV utiliza UTF-8 com BOM e separador ponto e vírgula; valores que poderiam iniciar fórmulas recebem proteção.
@@ -154,7 +154,7 @@ POST `/users` aceita `permissions` opcional. PATCH `/users/:id` aceita `permissi
 
 O administrador principal é identificado na migração pela conta administrativa ativa correspondente ao BOOTSTRAP_EMAIL (ou pela primeira conta administrativa ativa disponível) e protegido por restrição no banco: deve permanecer ativo e ADMIN. Não pode ser desativado, rebaixado ou receber permissões limitadas. Outros administradores não podem redefinir sua senha; o próprio principal pode trocá-la. Contas criadas por bootstrap em instalação nova recebem essa proteção.
 
-Permissões de lote são distintas: `batches.unit`, `batches.location`, `batches.undo`. Prévia e aplicação também verificam o campo do lote, impedindo que a permissão de unidade altere localizações. `reports.export` controla consultas e downloads; `imports.manage` controla o modelo, upload e resolução. Consultas de ativos, inventários, divergências, indicadores, unidades e localizações também são verificadas explicitamente. Autenticação, encerramento da própria sessão e consulta do próprio acesso permanecem disponíveis para toda conta ativa.
+Permissões de lote são distintas: `batches.unit`, `batches.location`, `batches.undo` e `batches.redo`. Prévia e aplicação também verificam o campo do lote, impedindo que a permissão de unidade altere localizações. `reports.export` controla consultas e downloads; `imports.manage` controla o modelo, upload e resolução. Consultas de ativos, inventários, divergências, indicadores, unidades e localizações também são verificadas explicitamente. Autenticação, encerramento da própria sessão e consulta do próprio acesso permanecem disponíveis para toda conta ativa.
 
 ### Refazer lotes e processamento em blocos
 
@@ -163,3 +163,9 @@ POST `/asset-batches/:id/redo` exige `batches.redo`, recebe um lote UNDONE e ret
 GET `/asset-batches/:id/events` devolve as versões cronológicas, com APPLY/UNDO/REDO, responsável, contagem e data. O histórico original é preservado; cada transição inclui um evento adicional e auditoria individual completa (BATCH_UNDO/BATCH_REDO nas reversões e reaplicações). A migração converte lotes antigos UNDONE para que também possam ser refeitos, desde que não tenham alterações posteriores.
 
 Aplicar, desfazer e refazer usam bloqueio ordenado dos ativos, validação conjunta e escrita de ativos/auditoria em blocos de 500, todos na mesma transação. Uma falha em qualquer bloco cancela tudo, incluindo versões e eventos; não há confirmação parcial. Valores nulos anteriores são preservados. Bloqueios concorrentes têm espera limitada e retornam mensagem para tentar novamente. Não há atualização por registro via ORM ou milhares de consultas individuais. `batches.redo` integra o modelo PATRIMONIAL e o acesso global ADMIN; listas personalizadas existentes precisam conceder essa tarefa explicitamente.
+
+### Limites de processamento e respostas
+
+Relatórios (prévia e download) aceitam no máximo 20.000 bens candidatos ou registros por solicitação. A seleção de bens considera patrimônio, descrição, grupo, unidade, localização e status; o período de incorporação também é aplicado antes do limite nos relatórios de ativos. Em históricos, o limite de bens candidatos é anterior ao período dos eventos. Excesso retorna 400 com orientação para filtros, sem arquivo parcial. A prévia mostra até 30 linhas, mas valida o limite do conjunto completo. Históricos aplicam o período no PostgreSQL no fuso America/Sao_Paulo.
+
+Uploads de fotos, imports/preview e relatórios compartilham duas operações simultâneas por processo. Excesso retorna 503 e cabeçalho Retry-After: 15. O cliente deve aguardar e solicitar novamente; o servidor não acumula fila de uploads. Cálculos de senha também têm capacidade limitada e podem retornar 503. JSON malformado retorna 400; corpo excessivo, 413. Os contratos de autenticação e o protocolo offline permanecem os mesmos.

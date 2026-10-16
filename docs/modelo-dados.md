@@ -1,25 +1,25 @@
 # Modelo de dados
 
-A migration inicial é a autoridade do esquema. `synchronize` permanece desabilitado. Não altere o banco manualmente para fazer uma mudança permanente de funcionalidade.
+A sequência de migrations registrada no DataSource é a autoridade do esquema. `synchronize` permanece desabilitado. Não altere o banco manualmente para fazer uma mudança permanente de funcionalidade.
 
-| Tabela            | Conteúdo e integridade                                             |
-| ----------------- | ------------------------------------------------------------------ |
-| `users`           | Nome, e-mail único, hash de senha, perfil e acesso ativo           |
-| `locations`       | Código único, descrição, prédio, andar, observação e situação      |
-| `units`           | Código único, nome, e-mail e situação                              |
-| `assets`          | Campos oficiais, status, localização, condição, versão e datas     |
-| `reservations`    | Ativo, destino, solicitante e etapas do transporte                 |
-| `movements`       | Antes/depois, operação, autor, justificativa e instante            |
-| `inventories`     | Localização, responsável, estado e ativos esperados no início      |
-| `inventory_items` | Uma conferência por ativo e sessão, resultado e instante observado |
-| `divergences`     | Tipo, descrição encontrada, localização observada e resolução      |
-| `photos`          | Metadados privados, vínculo ao ativo e opcionalmente à divergência |
-| `settings`        | Prazo e listas de destinatários                                    |
-| `outbox`          | Notificação pendente/enviada, tentativas e erro mais recente       |
-| `import_batches`  | Prévia imutável em JSON, versões esperadas e decisões aplicadas    |
-| `sync_receipts`   | UUID de operação, autor, hash do payload e resultado já aplicado   |
+| Tabela            | Conteúdo e integridade                                                                    |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| `users`           | Nome, e-mail único, hash versionado, perfil, permissões, principal e versão de sessão     |
+| `locations`       | Código único, descrição, prédio, andar, observação e situação                             |
+| `units`           | Código único, nome, e-mail e situação                                                     |
+| `assets`          | UUID interno, campos oficiais, status, unidade cadastrada, localização, condição e versão |
+| `reservations`    | Ativo, destino, solicitante e etapas do transporte                                        |
+| `movements`       | Antes/depois, operação, autor, justificativa e instante                                   |
+| `inventories`     | Localização, responsável, estado e ativos esperados no início                             |
+| `inventory_items` | Uma conferência por ativo e sessão, resultado e instante observado                        |
+| `divergences`     | Tipo, descrição encontrada, localização observada e resolução                             |
+| `photos`          | Metadados privados, vínculo ao ativo e opcionalmente à divergência                        |
+| `settings`        | Prazo e listas de destinatários                                                           |
+| `outbox`          | Notificação pendente/enviada, tentativas e erro mais recente                              |
+| `import_batches`  | Prévia imutável em JSON, versões esperadas e decisões aplicadas                           |
+| `sync_receipts`   | UUID de operação, autor, hash do payload e resultado já aplicado                          |
 
-`assets.patrimony` e `assets.uniqueCode` têm restrições únicas. Valores monetários usam `decimal(15,2)` e transitam como string para evitar arredondamento binário. `condition` aceita 1 a 5 ou null quando não avaliada. Chaves estrangeiras preservam relações; não há exclusão de ativos exposta na API.
+`assets.id` é o UUID imutável. `assets.patrimony` tem restrição única para conciliar reimportações; `assets.uniqueCode` pode se repetir e é preservado como veio na fonte. `unitId` é o vínculo com uma unidade cadastrada; `originUnit` preserva o conteúdo original da planilha. Valores monetários usam `decimal(15,2)` e transitam como string para evitar arredondamento binário. `condition` aceita 1 a 5 ou null quando não avaliada. Chaves estrangeiras preservam relações; não há exclusão de ativos exposta na API.
 
 ```mermaid
 erDiagram
@@ -46,3 +46,7 @@ Crie uma classe `MigrationInterface` com timestamp novo, registre no DataSource 
 ## Banco do aparelho
 
 SQLite contém `snapshots` e `operations`. Cada operação tem UUID, usuário, inventário, ativo, payload, estado, erro e foto local. Pendências não são removidas ao sair da conta. A desinstalação ou limpeza dos dados Android remove tudo; o aplicativo desabilita backup automático para evitar restaurar tokens/fila em outro aparelho inadvertidamente.
+
+## Histórico de alterações em lote
+
+`asset_batches` preserva campo alterado, destino, responsável, estado e revisão do lote; a coluna JSON `asset_batches.items` guarda valores anteriores e versões de cada ativo. `asset_batch_events` registra aplicações, reversões e reaplicações. Esses registros complementam as movimentações individuais, sem substituí-las. Aplicar, desfazer e refazer alteram ativos e histórico na mesma transação. Nenhuma dessas operações muda o UUID nem a coluna de unidade original.

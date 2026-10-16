@@ -15,6 +15,7 @@ const browser = await chromium.launch({
   args: ["--no-sandbox"],
 });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+page.setDefaultTimeout(15000);
 const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 await mkdir("/tmp/fatec-web-qa", { recursive: true });
@@ -32,16 +33,16 @@ try {
     fullPage: true,
   });
   await page.getByRole("button", { name: "Ativos", exact: true }).click();
-  await page.locator("tbody tr").first().waitFor();
+  await page.locator("tbody tr:visible").first().waitFor();
   await page.getByRole("button", { name: "Detalhes →" }).first().click();
   await page.getByRole("heading", { name: "Histórico", exact: true }).waitFor();
   await page.getByRole("button", { name: "Localizações", exact: true }).click();
   await page
-    .locator("form.panel.grid-form")
+    .locator("form.panel.grid-form:visible")
     .getByLabel("Código", { exact: true })
     .fill(`QA-${Date.now()}`);
   await page
-    .locator("form.panel.grid-form")
+    .locator("form.panel.grid-form:visible")
     .getByLabel("Descrição", { exact: true })
     .fill("Sala de teste do portal");
   await page.getByRole("button", { name: "Cadastrar localização" }).click();
@@ -62,10 +63,36 @@ try {
     "Relatórios",
     "Auditoria",
     "Importar planilha",
+    "Ajuda",
   ]) {
     await page.getByRole("button", { name, exact: true }).click();
     await page.getByRole("heading", { name, exact: true }).waitFor();
   }
+  await page
+    .getByRole("heading", { name: "Portal e coleta no celular" })
+    .waitFor();
+  await page
+    .getByRole("heading", { name: "Seu perfil e as permissões" })
+    .waitFor();
+  await page.screenshot({ path: "/tmp/fatec-web-qa/ajuda.png" });
+  await page.getByRole("button", { name: "Relatórios", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Visualizar prévia", exact: true })
+    .click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "registros encontrados" })
+    .waitFor();
+  const downloadEvent = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Exportar XLSX", exact: true })
+    .click();
+  const report = await downloadEvent;
+  assert.match(report.suggestedFilename(), /\.xlsx$/);
+  assert.equal(await report.failure(), null);
+  await page
+    .getByRole("button", { name: "Importar planilha", exact: true })
+    .click();
   await page.screenshot({
     path: "/tmp/fatec-web-qa/importacao.png",
     fullPage: true,
@@ -80,6 +107,11 @@ try {
   console.log(
     "Portal validado: login, indicadores, consulta, histórico, cadastro, navegação e viewport mobile.",
   );
+} catch (error) {
+  await page
+    .screenshot({ path: "/tmp/fatec-web-qa/falha.png" })
+    .catch(() => undefined);
+  throw error;
 } finally {
   await browser.close();
 }

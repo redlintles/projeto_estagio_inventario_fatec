@@ -72,3 +72,11 @@ Restaure fotos com os mesmos nomes e permissões de leitura/gravação do proces
 Mudanças no protocolo offline precisam manter compatibilidade com operações coletadas pela versão anterior. Não remover ou reinterpretar campos enquanto houver aparelhos com pendências.
 
 Consulte também `docs/seguranca.md` antes de carregar dados reais. As migrations desta versão invalidam tokens anteriores: entre novamente no portal e no Android, sem apagar a fila offline.
+
+## Capacidade e compatibilidade de atualização
+
+A versão atual admite até duas operações de arquivo simultâneas por processo e quatro cálculos de senha. O excesso recebe 503; operações de arquivo informam Retry-After de 15 segundos. Relatórios recusam mais de 20.000 bens candidatos ou registros sem truncar o arquivo. Meça carga na máquina definitiva antes de ampliar limites. O proxy de exemplo aceita corpo multipart de 9 MB; o arquivo individual continua limitado a 8 MB. Mantenha timeout compatível com os lotes, sem remover bloqueios e validação de versão.
+
+Senhas antigas são atualizadas automaticamente para o hash scrypt-v2 no login. Versões anteriores do backend não reconhecem esse formato: antes de voltar uma versão, planeje uma correção compatível. Não restaure um banco antigo sobre dados novos para contornar incompatibilidade. Nenhuma migration de dados patrimoniais é necessária nesta rodada.
+
+O pool do PostgreSQL usa até 10 conexões por processo, timeout inicial de 10 segundos e limite de 60 segundos por consulta/transação ociosa. Esses limites são definidos em `backend/src/data-source.ts`. O limite de consulta não é o tempo total de um lote: cada comando é limitado separadamente. SMTP usa 10 segundos para conexão/saudação e 30 segundos de inatividade no socket. Ajustes exigem observar consumo e concorrência na máquina definitiva.

@@ -4,9 +4,9 @@
 
 Backend: regras de nota física e prazo estrito; hash de senha; CSV seguro; comparação de campos; PostgreSQL real com migrations; conflito de versão; confirmação explícita de localização; preservação da localização em divergências; reenvio simultâneo da mesma operação; suspensão de prazo por reserva; cancelamento e transporte; expiração e baixa; reimportação campo a campo; rollback em lote; autenticação e autorização HTTP; ocultação de hashes; paginação; foto idempotente; falha SMTP preservando a notificação para reenvio.
 
-Web: envio de token/payload e propagação de erro de conflito. A compilação TypeScript verifica as telas. A verificação visual e os fluxos de usuário exigem também o roteiro abaixo.
+Web: envio de token/payload, propagação de conflito e dos motivos de recusa de downloads, e tratamento de resposta HTML do proxy. A compilação TypeScript verifica as telas. A verificação visual e os fluxos de usuário exigem também o roteiro abaixo.
 
-Android: compilação do APK, testes da política de falhas de sincronização e lint. A câmera, armazenamento no aparelho e agendamento Android exigem teste em emulador/aparelho; testes JVM sozinhos não os comprovam.
+Android: compilação do APK, testes da política de falhas de sincronização e lint. Os testes instrumentados e a revisão de coleta estão descritos em docs/revisao-android.md. Nesta rodada, nenhum código Android foi alterado. A câmera, armazenamento no aparelho e agendamento Android exigem teste em emulador/aparelho; testes JVM sozinhos não os comprovam.
 
 ## Banco de teste
 
@@ -35,3 +35,14 @@ Android: compilação do APK, testes da política de falhas de sincronização e
 ## Checklist antes de entrega institucional
 
 Homologar formato da planilha real e etiquetas; decidir domínio/rede e HTTPS; configurar SMTP real; testar em ao menos um aparelho representativo; validar capacidade da base; definir backup e responsável; assinar versão release. Essas decisões não são presumidas pela implementação.
+
+## Regressões de segurança e relatórios
+
+- Senhas legadas e scrypt-v2, atualização do hash após login e excesso de cálculos simultâneos.
+- Limite de arquivos concorrentes e liberação da capacidade após sucesso, erro e cancelamento.
+- JSON incompleto devolve 400 sem texto sensível; contadores de login expiram mesmo entre limpezas.
+- Relatórios validam limites com 20.001 bens fictícios sem truncar, preservam tipos de célula e neutralizam fórmulas em CSV.
+- Histórico com fronteiras de dia em São Paulo e 3.903 movimentações de 1.301 ativos, consultadas por blocos e ordenadas globalmente.
+- O roteiro `scripts/web-smoke.mjs` inclui Ajuda, prévia de relatório e download XLSX, além de login, navegação, cadastro, histórico e viewport estreito. Use somente instalação descartável, pois o roteiro grava uma localização.
+
+Validação de desempenho com lotes não equivale a teste de carga em produção. A instituição deve medir simultaneidade, quantidade de fotos, armazenamento e tempo de resposta na máquina definitiva.

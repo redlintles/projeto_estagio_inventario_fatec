@@ -55,3 +55,9 @@ Não há Kubernetes, Redis ou microsserviços obrigatórios. A outbox usa Postgr
 Instantes do servidor usam `timestamptz`. Datas de incorporação são datas civis. A coleta mobile preserva `observedAt`, mas a ordem da auditoria usa o instante de aplicação no servidor. O prazo inicial é 20 dias corridos de 24 horas, com comparação estrita `>`; não são dias úteis.
 
 Notificações têm entrega pelo menos uma vez. Há uma janela inevitável entre aceitação pelo SMTP e confirmação no banco: em falha nesse momento o e-mail pode ser reenviado. O `Message-ID` é estável para ajudar a identificar duplicatas. A mudança patrimonial não é revertida se o SMTP estiver indisponível.
+
+## Separações para manutenção
+
+A gestão de contas fica em `auth/users.service.ts`, com alteração de acesso e revogação das sessões na mesma transação. `auth/passwords.ts` concentra o formato versionado de hashes e o cálculo assíncrono limitado. Os contratos de rotas e validação continuam em `controller.ts`.
+
+Relatórios separam consulta e apresentação: `reports.ts` monta os dados legíveis, `report-query.ts` limita e consulta históricos por blocos, `report-format.ts` gera CSV/XLSX/ODS e formata datas/valores. Textos da ajuda ficam em `web/src/features/help-guides.ts`; `Help.tsx` monta a página e navegação. O interceptor `resource-limit.ts` protege a capacidade compartilhada de arquivos por processo.
