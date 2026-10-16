@@ -37,7 +37,12 @@ fun PatrimonioApp() {
   var password by remember { mutableStateOf("") }
   var message by remember { mutableStateOf("") }
   var busy by remember { mutableStateOf(false) }
-  var tab by remember { mutableStateOf("Inventário") }
+  var tab by rememberSaveable {
+    mutableStateOf(
+      if (session.can("inventories.view")) "Inventário"
+      else if (session.can("assets.view")) "Identificar" else "Ajuda"
+    )
+  }
   var accountMenu by remember { mutableStateOf(false) }
   val contentScroll = rememberScrollState()
   var refresh by remember { mutableIntStateOf(0) }
@@ -111,9 +116,10 @@ fun PatrimonioApp() {
       else message = "Permita a câmera para registrar a foto."
     }
   fun work(block: suspend () -> Unit) {
+    if (busy) return
+    busy = true
+    message = ""
     scope.launch {
-      busy = true
-      message = ""
       try {
         block()
       } catch (e: Exception) {
@@ -150,13 +156,16 @@ fun PatrimonioApp() {
           }
         }
       }
-    synchronized(LocalStore::class.java) { for ((name, list) in data) store.cache(name, list) }
-    assets = data.getValue("assets").objects()
-    locations = data.getValue("locations").objects()
-    units = data.getValue("units").objects()
-    lastRefresh = Instant.now().toString()
-    store.cache("metadata", JSONArray().put(JSONObject().put("updatedAt", lastRefresh)))
-    inventories = data.getValue("inventories").objects()
+    val updatedAt = Instant.now().toString()
+    val stored = withContext(Dispatchers.IO) { store.cacheBase(data, updatedAt) }
+    assets = stored.getValue("assets").objects()
+    locations = stored.getValue("locations").objects()
+    units = stored.getValue("units").objects()
+    inventories = stored.getValue("inventories").objects()
+    lastRefresh = updatedAt
+    if (tab == "Inventário" && !session.can("inventories.view"))
+      tab = if (session.can("assets.view")) "Identificar" else "Ajuda"
+    if (tab == "Identificar" && !session.can("assets.view")) tab = "Ajuda"
     selected =
       selected?.let { previous -> assets.find { it.optString("id") == previous.optString("id") } }
     if (inventories.none { it.optString("id") == inventoryId && it.optString("status") == "OPEN" })
