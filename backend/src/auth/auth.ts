@@ -6,45 +6,31 @@ import {
   UnauthorizedException,
   ForbiddenException,
   SetMetadata,
-  BadRequestException,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { DataSource } from "typeorm";
-import {
-  randomBytes,
-  scryptSync,
-  scrypt,
-  timingSafeEqual,
-  createHash,
-} from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import jwt from "jsonwebtoken";
 import { UserSchema } from "../persistence/schemas";
 import { Role, User } from "../domain/model";
-import { promisify } from "node:util";
+import {
+  hashPassword,
+  verifyPasswordAsync,
+  hashPasswordAsync,
+} from "./passwords";
+export { hashPassword, verifyPassword } from "./passwords";
 import { AttemptLimiter } from "./rate-limit";
 import { effectivePermissions, Permission } from "./permissions";
 export const RequireAnyPermissions = (...permissions: Permission[]) =>
   SetMetadata("anyPermissions", permissions);
 export const RequirePermissions = (...permissions: Permission[]) =>
   SetMetadata("permissions", permissions);
-const derive = promisify(scrypt);
 const dummyHash = hashPassword(randomBytes(32).toString("hex"));
 export const Roles = (...roles: Role[]) => SetMetadata("roles", roles);
 export type Actor = Pick<User, "id" | "role" | "name" | "email"> & {
   permissions?: Permission[];
   primaryAdmin?: boolean;
 };
-export function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(password, salt, 64).toString("hex")}`;
-}
-export function verifyPassword(password: string, hash: string) {
-  const [salt, key] = hash.split(":");
-  if (!salt || !key) return false;
-  const actual = scryptSync(password, salt, 64);
-  const expected = Buffer.from(key, "hex");
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
-}
 export function jwtSecret() {
   const value = process.env.JWT_SECRET;
   if (!value || value.length < 32)
@@ -56,13 +42,13 @@ export class AuthService {
   private limiter = new AttemptLimiter();
   constructor(@Inject(DataSource) private readonly db: DataSource) {}
   async login(email: string, password: string, remoteAddress = "local") {
-    const key = email.toLowerCase();
+    const normalizedEmail = email.toLowerCase();
     const accountKey =
-      "account:" + createHash("sha256").update(key).digest("hex");
+      "account:" + createHash("sha256").update(normalizedEmail).digest("hex");
     this.limiter.take("ip:" + remoteAddress, 40, 60000);
     this.limiter.take(accountKey, 8, 900000);
     const user = await this.db.getRepository(UserSchema).findOne({
-      where: { email: key },
+      where: { email: normalizedEmail },
       select: {
         id: true,
         name: true,
@@ -75,15 +61,27 @@ export class AuthService {
         tokenVersion: true,
       },
     });
-    const [salt, expected] = (user?.passwordHash ?? dummyHash).split(":");
-    const actual = (await derive(password, salt, 64)) as Buffer;
-    const encoded = Buffer.from(expected, "hex");
-    if (
-      !user?.active ||
-      actual.length !== encoded.length ||
-      !timingSafeEqual(actual, encoded)
-    ) {
+    const validPassword = await verifyPasswordAsync(
+      password,
+      user?.passwordHash ?? dummyHash,
+    );
+    if (!user?.active || !validPassword) {
       throw new UnauthorizedException("Credenciais inválidas.");
+    }
+    if (!user.passwordHash.startsWith("scrypt-v2:")) {
+      const passwordHash = await hashPasswordAsync(password);
+      // Uma troca de senha simultânea não pode ser sobrescrita pelo login antigo.
+      const upgraded = await this.db.getRepository(UserSchema).update(
+        {
+          id: user.id,
+          passwordHash: user.passwordHash,
+          tokenVersion: user.tokenVersion ?? 0,
+          active: true,
+        },
+        { passwordHash },
+      );
+      if (!upgraded.affected)
+        throw new UnauthorizedException("Faça login novamente.");
     }
     this.limiter.clear(accountKey);
     const actor = {

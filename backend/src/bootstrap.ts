@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { dataSource } from "./data-source";
 import { UserSchema } from "./persistence/schemas";
-import { hashPassword } from "./auth/auth";
+import { hashPasswordAsync } from "./auth/passwords";
 async function bootstrap() {
   const email = process.env.BOOTSTRAP_EMAIL?.toLowerCase(),
     password = process.env.BOOTSTRAP_PASSWORD;
@@ -22,7 +22,7 @@ async function bootstrap() {
       id: randomUUID(),
       name: "Administrador",
       email,
-      passwordHash: hashPassword(password),
+      passwordHash: await hashPasswordAsync(password),
       role: "ADMIN",
       primaryAdmin: true,
       permissions: null,

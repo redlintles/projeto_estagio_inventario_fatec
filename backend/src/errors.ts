@@ -11,6 +11,10 @@ export class ErrorsFilter implements ExceptionFilter {
   private readonly logger = new Logger("API");
   catch(error: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse();
+    if ((error as { type?: string })?.type === "entity.parse.failed")
+      return res
+        .status(400)
+        .json({ message: "JSON inválido. Confira os dados enviados." });
     if ((error as { type?: string })?.type === "entity.too.large")
       return res
         .status(413)
@@ -19,13 +23,16 @@ export class ErrorsFilter implements ExceptionFilter {
       return res.status(error.getStatus()).json(error.getResponse());
     if (error instanceof QueryFailedError) {
       const code = (error.driverError as { code?: string }).code;
+      if (code === "57014")
+        return res.status(503).json({
+          message:
+            "A consulta excedeu o tempo permitido. Restrinja os filtros e tente novamente.",
+        });
       if (["55P03", "40P01", "40001"].includes(code ?? ""))
-        return res
-          .status(409)
-          .json({
-            message:
-              "Registros em uso por outra operação. Atualize os dados e tente novamente.",
-          });
+        return res.status(409).json({
+          message:
+            "Registros em uso por outra operação. Atualize os dados e tente novamente.",
+        });
       if (code === "23505")
         return res
           .status(409)

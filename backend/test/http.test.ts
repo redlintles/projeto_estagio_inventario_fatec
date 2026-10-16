@@ -62,6 +62,42 @@ suite("Contrato HTTP e permissões", () => {
     if (app) await app.close();
     if (db?.isInitialized) await db.destroy();
   });
+  it("recusa JSON malformado sem expor o conteúdo recebido", async () => {
+    const response = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .set("Content-Type", "application/json")
+      .send('{"password":"segredo-sem-fechar');
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain("JSON inválido");
+    expect(JSON.stringify(response.body)).not.toContain("segredo-sem-fechar");
+  });
+  it("atualiza o hash antigo no login preservando senha e conta", async () => {
+    const { scryptSync } = await import("node:crypto");
+    const id = randomUUID(),
+      salt = "b".repeat(32),
+      email = `${id}@example.org`;
+    const passwordHash = `${salt}:${scryptSync("senha-legada-123", salt, 64).toString("hex")}`;
+    await db.getRepository(S.UserSchema).save({
+      id,
+      name: "Legado",
+      email,
+      passwordHash,
+      role: "CONSULTA",
+      active: true,
+    });
+    await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email, password: "senha-legada-123" })
+      .expect(201);
+    const user = await db
+      .getRepository(S.UserSchema)
+      .findOne({ where: { id }, select: { id: true, passwordHash: true } });
+    expect(user?.passwordHash.startsWith("scrypt-v2:")).toBe(true);
+    await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email, password: "senha-legada-123" })
+      .expect(201);
+  });
   it("nega acesso sem token e alteração para perfil de consulta", async () => {
     expect((await request(app.getHttpServer()).get("/api/assets")).status).toBe(
       401,

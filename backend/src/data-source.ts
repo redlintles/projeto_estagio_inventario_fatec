@@ -22,4 +22,12 @@ export const dataSource = new DataSource({
   ],
   synchronize: false,
   logging: false,
+  connectTimeoutMS: 10000,
+  // Uma falha de rede ou consulta presa não deve ocupar conexões indefinidamente.
+  extra: {
+    max: 10,
+    idleTimeoutMillis: 30000,
+    statement_timeout: 60000,
+    idle_in_transaction_session_timeout: 60000,
+  },
 });

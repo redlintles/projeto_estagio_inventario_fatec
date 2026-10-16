@@ -1,11 +1,20 @@
 import { HttpException } from "@nestjs/common";
 export class AttemptLimiter {
   private entries = new Map<string, { count: number; until: number }>();
+  private nextCleanup = 0;
   constructor(private maximum = 10000) {}
   take(key: string, limit: number, period: number, now = Date.now()) {
-    for (const [k, v] of this.entries)
-      if (v.until <= now) this.entries.delete(k);
+    // A limpeza periódica evita percorrer milhares de contas a cada tentativa.
+    if (now >= this.nextCleanup || this.entries.size >= this.maximum) {
+      for (const [entryKey, entry] of this.entries)
+        if (entry.until <= now) this.entries.delete(entryKey);
+      this.nextCleanup = now + 30000;
+    }
     let entry = this.entries.get(key);
+    if (entry && entry.until <= now) {
+      this.entries.delete(key);
+      entry = undefined;
+    }
     if (!entry) {
       if (this.entries.size >= this.maximum)
         throw new HttpException(

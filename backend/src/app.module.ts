@@ -1,3 +1,4 @@
+import { UsersService } from "./auth/users.service";
 import { Module } from "@nestjs/common";
 import { APP_GUARD, APP_FILTER } from "@nestjs/core";
 import { DataSource } from "typeorm";
@@ -15,6 +16,7 @@ import { ErrorsFilter } from "./errors";
   providers: [
     { provide: DataSource, useFactory: () => dataSource.initialize() },
     AuthService,
+    UsersService,
     AssetsService,
     InventoryService,
     ImportsService,

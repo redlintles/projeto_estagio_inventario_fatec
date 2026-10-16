@@ -15,3 +15,9 @@ entregaveis
 **/*.dump
 **/*.sql
 **/.env.*
+
+# Relatórios exportados podem conter dados institucionais.
+**/*.ods
+**/*.csv
+**/*.tsv
+**/*.bak

@@ -1,4 +1,6 @@
-import { permissionKeys, normalizePermissions } from "./auth/permissions";
+import { UsersService } from "./auth/users.service";
+import { ResourceLimitInterceptor } from "./resource-limit";
+import { permissionKeys } from "./auth/permissions";
 import { RequirePermissions, RequireAnyPermissions } from "./auth/auth";
 import {
   ReportsService,
@@ -28,7 +30,7 @@ import { DataSource } from "typeorm";
 import { randomUUID } from "node:crypto";
 import { Request, Response } from "express";
 import { z } from "zod";
-import { AuthService, Actor, Roles, hashPassword } from "./auth/auth";
+import { AuthService, Actor, Roles } from "./auth/auth";
 import { AssetsService } from "./assets/assets.service";
 import { InventoryService } from "./inventory/inventory.service";
 import { ImportsService } from "./imports/imports.service";
@@ -57,6 +59,7 @@ const fileBody = {
 export class ApiController {
   constructor(
     @Inject(AuthService) private readonly auth: AuthService,
+    @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(AssetsService) private readonly assets: AssetsService,
     @Inject(InventoryService) private readonly inventory: InventoryService,
     @Inject(ImportsService) private readonly imports: ImportsService,
@@ -90,14 +93,14 @@ export class ApiController {
       request.ip ?? request.socket.remoteAddress ?? "unknown",
     );
   }
-  @Post("auth/logout") async logout(@Req() r: AuthRequest) {
+  @Post("auth/logout") async logout(@Req() request: AuthRequest) {
     await this.db
       .getRepository(S.UserSchema)
-      .increment({ id: r.user.id }, "tokenVersion", 1);
+      .increment({ id: request.user.id }, "tokenVersion", 1);
     return { loggedOut: true };
   }
-  @Get("auth/me") me(@Req() r: AuthRequest) {
-    return r.user;
+  @Get("auth/me") me(@Req() request: AuthRequest) {
+    return request.user;
   }
   @Get("dashboard") @RequirePermissions("dashboard.view") dashboard() {
     return this.assets.dashboard();
@@ -114,7 +117,7 @@ export class ApiController {
   }
   @Post("assets") @RequirePermissions("assets.create") create(
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
     const data = parse(
       assetInput
@@ -134,11 +137,11 @@ export class ApiController {
       ...fields,
       value: fields.value ?? "0.00",
     });
-    return this.assets.create(input, r.user, previousAssetId);
+    return this.assets.create(input, request.user, previousAssetId);
   }
   @Post("assets/location-batch")
   @RequirePermissions("batches.location")
-  locateBatch(@Body() body: unknown, @Req() r: AuthRequest) {
+  locateBatch(@Body() body: unknown, @Req() request: AuthRequest) {
     const input = parse(
       z
         .object({
@@ -151,11 +154,15 @@ export class ApiController {
         .strict(),
       body,
     );
-    return this.assets.locateBatch(input.assets, input.locationId, r.user);
+    return this.assets.locateBatch(
+      input.assets,
+      input.locationId,
+      request.user,
+    );
   }
   @Post("assets/unit-batch")
   @RequirePermissions("batches.unit")
-  assignUnitBatch(@Body() body: unknown, @Req() r: AuthRequest) {
+  assignUnitBatch(@Body() body: unknown, @Req() request: AuthRequest) {
     const input = parse(
       z
         .object({
@@ -168,7 +175,11 @@ export class ApiController {
         .strict(),
       body,
     );
-    return this.assets.assignUnitBatch(input.assets, input.unitId, r.user);
+    return this.assets.assignUnitBatch(
+      input.assets,
+      input.unitId,
+      request.user,
+    );
   }
   @Post("asset-batches/selection")
   @RequireAnyPermissions(
@@ -190,7 +201,7 @@ export class ApiController {
   }
   @Post("asset-batches/preview")
   @RequireAnyPermissions("batches.unit", "batches.location")
-  previewBatch(@Body() body: unknown, @Req() r: AuthRequest) {
+  previewBatch(@Body() body: unknown, @Req() request: AuthRequest) {
     const input = parse(
       z
         .object({
@@ -211,13 +222,13 @@ export class ApiController {
       input.targetId,
       input.assets,
       input.filters,
-      r.user,
+      request.user,
     );
   }
   @Post("asset-batches/:id/apply")
   @RequireAnyPermissions("batches.unit", "batches.location")
-  applyBatch(@Param("id") id: string, @Req() r: AuthRequest) {
-    return this.assets.applyBatch(parse(uuid, id), r.user);
+  applyBatch(@Param("id") id: string, @Req() request: AuthRequest) {
+    return this.assets.applyBatch(parse(uuid, id), request.user);
   }
   @Get("asset-batches")
   @RequireAnyPermissions(
@@ -234,15 +245,15 @@ export class ApiController {
   }
   @Post("asset-batches/:id/undo") @RequirePermissions("batches.undo") undoBatch(
     @Param("id") id: string,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    return this.assets.undoBatch(parse(uuid, id), r.user);
+    return this.assets.undoBatch(parse(uuid, id), request.user);
   }
   @Post("asset-batches/:id/redo") @RequirePermissions("batches.redo") redoBatch(
     @Param("id") id: string,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    return this.assets.redoBatch(parse(uuid, id), r.user);
+    return this.assets.redoBatch(parse(uuid, id), request.user);
   }
   @Get("asset-batches/:id/events")
   @RequireAnyPermissions(
@@ -257,17 +268,17 @@ export class ApiController {
   @Post("assets/:id/location") @RequirePermissions("assets.location") locate(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z.object({ expectedVersion: version, locationId: uuid }).strict(),
       body,
     );
     return this.assets.locate(
       parse(uuid, id),
-      b.expectedVersion,
-      b.locationId,
-      r.user,
+      input.expectedVersion,
+      input.locationId,
+      request.user,
     );
   }
   @Post("assets/:id/available")
@@ -275,17 +286,17 @@ export class ApiController {
   available(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z.object({ expectedVersion: version, condition }).strict(),
       body,
     );
     return this.assets.available(
       parse(uuid, id),
-      b.expectedVersion,
-      b.condition,
-      r.user,
+      input.expectedVersion,
+      input.condition,
+      request.user,
     );
   }
   @Post("assets/:id/reservations")
@@ -293,17 +304,17 @@ export class ApiController {
   reserve(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z.object({ expectedVersion: version, destinationUnitId: uuid }).strict(),
       body,
     );
     return this.assets.reserve(
       parse(uuid, id),
-      b.expectedVersion,
-      b.destinationUnitId,
-      r.user,
+      input.expectedVersion,
+      input.destinationUnitId,
+      request.user,
     );
   }
   @Post("reservations/:id/:action")
@@ -312,21 +323,21 @@ export class ApiController {
     @Param("id") id: string,
     @Param("action") action: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(z.object({ expectedVersion: version }).strict(), body);
+    const input = parse(z.object({ expectedVersion: version }).strict(), body);
     return this.assets.reservation(
       parse(uuid, id),
       parse(z.enum(["dispatch", "complete", "cancel"]), action),
-      b.expectedVersion,
-      r.user,
+      input.expectedVersion,
+      request.user,
     );
   }
   @Post("write-offs") @RequirePermissions("assets.writeOff") writeOff(
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           assets: z
@@ -338,9 +349,13 @@ export class ApiController {
         .strict(),
       body,
     );
-    if (new Set(b.assets.map((a) => a.id)).size !== b.assets.length)
+    if (new Set(input.assets.map((a) => a.id)).size !== input.assets.length)
       throw new BadRequestException("Ativo duplicado.");
-    return this.assets.writeOff(b.assets, b.justification, r.user);
+    return this.assets.writeOff(
+      input.assets,
+      input.justification,
+      request.user,
+    );
   }
   @Get("locations") @RequirePermissions("locations.view") locations() {
     return this.db
@@ -350,7 +365,7 @@ export class ApiController {
   @Post("locations") @RequirePermissions("locations.manage") location(
     @Body() body: unknown,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           code: z.string().min(1).max(50),
@@ -364,12 +379,12 @@ export class ApiController {
     );
     return this.db
       .getRepository(S.LocationSchema)
-      .save({ id: randomUUID(), ...b, active: true });
+      .save({ id: randomUUID(), ...input, active: true });
   }
   @Patch("locations/:id")
   @RequirePermissions("locations.manage")
   updateLocation(@Param("id") id: string, @Body() body: unknown) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           description: z.string().min(1).max(255).optional(),
@@ -381,7 +396,9 @@ export class ApiController {
         .strict(),
       body,
     );
-    return this.db.getRepository(S.LocationSchema).update(parse(uuid, id), b);
+    return this.db
+      .getRepository(S.LocationSchema)
+      .update(parse(uuid, id), input);
   }
   @Get("units") @RequirePermissions("units.view") units() {
     return this.db.getRepository(S.UnitSchema).find({ order: { name: "ASC" } });
@@ -389,7 +406,7 @@ export class ApiController {
   @Post("units") @RequirePermissions("units.manage") unit(
     @Body() body: unknown,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           code: z.string().min(1).max(20),
@@ -401,13 +418,13 @@ export class ApiController {
     );
     return this.db
       .getRepository(S.UnitSchema)
-      .save({ id: randomUUID(), ...b, active: true });
+      .save({ id: randomUUID(), ...input, active: true });
   }
   @Patch("units/:id") @RequirePermissions("units.manage") updateUnit(
     @Param("id") id: string,
     @Body() body: unknown,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           name: z.string().min(1).max(255).optional(),
@@ -417,23 +434,13 @@ export class ApiController {
         .strict(),
       body,
     );
-    return this.db.getRepository(S.UnitSchema).update(parse(uuid, id), b);
+    return this.db.getRepository(S.UnitSchema).update(parse(uuid, id), input);
   }
   @Get("users") @Roles("ADMIN") users() {
-    return this.db.getRepository(S.UserSchema).find({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        active: true,
-        permissions: true,
-        primaryAdmin: true,
-      },
-    });
+    return this.usersService.list();
   }
   @Post("users") @Roles("ADMIN") user(@Body() body: unknown) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           name: z.string().min(1).max(100),
@@ -449,33 +456,14 @@ export class ApiController {
         .strict(),
       body,
     );
-    return this.createUser(b);
-  }
-  private async createUser(b: {
-    name: string;
-    email: string;
-    password: string;
-    role: "ADMIN" | "PATRIMONIAL" | "CONSULTA";
-    permissions?: import("./auth/permissions").Permission[] | null;
-  }) {
-    const user = await this.db.getRepository(S.UserSchema).save({
-      id: randomUUID(),
-      name: b.name,
-      email: b.email.toLowerCase(),
-      passwordHash: hashPassword(b.password),
-      role: b.role,
-      permissions: b.permissions ? normalizePermissions(b.permissions) : null,
-      active: true,
-    });
-    const { passwordHash, ...safe } = user;
-    return safe;
+    return this.usersService.create(input);
   }
   @Patch("users/:id") @Roles("ADMIN") async updateUser(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           active: z.boolean().optional(),
@@ -490,43 +478,7 @@ export class ApiController {
         .strict(),
       body,
     );
-    if (
-      id === r.user.id &&
-      (b.active === false || (b.role && b.role !== "ADMIN"))
-    )
-      throw new BadRequestException(
-        "Não remova seu próprio acesso administrativo.",
-      );
-    const { password, ...fields } = b;
-    const targetId = parse(uuid, id);
-    return this.db.transaction(async (m) => {
-      const target = await m.getRepository(S.UserSchema).findOne({
-        where: { id: targetId },
-        lock: { mode: "pessimistic_write" },
-      });
-      if (!target) throw new BadRequestException("Usuário não encontrado.");
-      if (
-        target.primaryAdmin &&
-        (r.user.id !== targetId ||
-          b.active === false ||
-          (b.role && b.role !== "ADMIN") ||
-          b.permissions !== undefined)
-      )
-        throw new BadRequestException(
-          "O administrador principal mantém acesso global. Somente ele pode alterar sua própria senha.",
-        );
-      const result = await m.getRepository(S.UserSchema).update(targetId, {
-        ...fields,
-        ...(fields.permissions
-          ? { permissions: normalizePermissions(fields.permissions) }
-          : {}),
-        ...(password ? { passwordHash: hashPassword(password) } : {}),
-      });
-      await m
-        .getRepository(S.UserSchema)
-        .increment({ id: targetId }, "tokenVersion", 1);
-      return result;
-    });
+    return this.usersService.update(parse(uuid, id), input, request.user);
   }
   @Get("settings") @RequirePermissions("settings.manage") settings() {
     return this.db.getRepository(S.SettingSchema).find();
@@ -534,7 +486,7 @@ export class ApiController {
   @Post("settings") @RequirePermissions("settings.manage") setting(
     @Body() body: unknown,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           name: z.enum([
@@ -547,15 +499,15 @@ export class ApiController {
         .strict(),
       body,
     );
-    if (b.name === "PRAZO_BAIXA_DIAS")
-      parse(z.coerce.number().int().min(1).max(3650), b.value);
+    if (input.name === "PRAZO_BAIXA_DIAS")
+      parse(z.coerce.number().int().min(1).max(3650), input.value);
     else
-      for (const email of b.value
+      for (const email of input.value
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean))
         parse(z.email(), email);
-    return this.db.getRepository(S.SettingSchema).save(b);
+    return this.db.getRepository(S.SettingSchema).save(input);
   }
   @Get("inventories") @RequirePermissions("inventories.view") inventories() {
     return this.db
@@ -564,10 +516,10 @@ export class ApiController {
   }
   @Post("inventories") @RequirePermissions("inventories.manage") start(
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(z.object({ locationId: uuid }).strict(), body);
-    return this.inventory.start(b.locationId, r.user);
+    const input = parse(z.object({ locationId: uuid }).strict(), body);
+    return this.inventory.start(input.locationId, request.user);
   }
   @Get("inventories/:id")
   @RequirePermissions("inventories.view")
@@ -577,46 +529,52 @@ export class ApiController {
   @Post("inventories/:id/scans") @RequirePermissions("inventories.manage") scan(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
     return this.inventory.onlineScan(
       parse(uuid, id),
       parse(scanInput, body),
-      r.user,
+      request.user,
     );
   }
   @Post("inventories/:id/close")
   @RequirePermissions("inventories.manage")
-  close(@Param("id") id: string, @Req() r: AuthRequest) {
-    return this.inventory.close(parse(uuid, id), r.user);
+  close(@Param("id") id: string, @Req() request: AuthRequest) {
+    return this.inventory.close(parse(uuid, id), request.user);
   }
   @Post("sync") @RequirePermissions("inventories.manage") sync(
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({ operationId: uuid, inventoryId: uuid, input: scanInput })
         .strict(),
       body,
     );
-    return this.inventory.sync(b.operationId, b.inventoryId, b.input, r.user);
+    return this.inventory.sync(
+      input.operationId,
+      input.inventoryId,
+      input.input,
+      request.user,
+    );
   }
   @Get("divergences") @RequirePermissions("divergences.view") divergences(
-    @Query() q: Record<string, string>,
+    @Query() filters: Record<string, string>,
   ) {
     const query = this.db
       .getRepository(S.DivergenceSchema)
       .createQueryBuilder("d");
     for (const key of ["status", "type", "locationId"])
-      if (q[key]) query.andWhere(`d.${key} = :${key}`, { [key]: q[key] });
-    if (q.from)
+      if (filters[key])
+        query.andWhere(`d.${key} = :${key}`, { [key]: filters[key] });
+    if (filters.from)
       query.andWhere("d.createdAt >= :from", {
-        from: parse(z.iso.date(), q.from),
+        from: parse(z.iso.date(), filters.from),
       });
-    if (q.to)
+    if (filters.to)
       query.andWhere("d.createdAt < :to::date + interval '1 day'", {
-        to: parse(z.iso.date(), q.to),
+        to: parse(z.iso.date(), filters.to),
       });
     return query.orderBy("d.createdAt", "DESC").take(5000).getMany();
   }
@@ -625,9 +583,9 @@ export class ApiController {
   resolve(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           resolution: z.string().min(3).max(2000),
@@ -638,9 +596,9 @@ export class ApiController {
     );
     return this.inventory.resolve(
       parse(uuid, id),
-      b.resolution,
-      b.newLocationId,
-      r.user,
+      input.resolution,
+      input.newLocationId,
+      request.user,
     );
   }
   @Get("imports/template") @RequirePermissions("imports.manage") template(
@@ -656,6 +614,7 @@ export class ApiController {
   @ApiConsumes("multipart/form-data")
   @ApiBody(fileBody)
   @UseInterceptors(
+    ResourceLimitInterceptor,
     FileInterceptor("file", {
       limits: {
         fileSize: 8 * 1024 * 1024,
@@ -668,19 +627,24 @@ export class ApiController {
   )
   preview(
     @UploadedFile() file: Express.Multer.File,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
     @Body() body: unknown,
   ) {
     if (!file) throw new BadRequestException("Selecione a planilha.");
     const { unitId } = parse(z.object({ unitId: uuid }).strict(), body);
-    return this.imports.preview(file.buffer, file.originalname, r.user, unitId);
+    return this.imports.preview(
+      file.buffer,
+      file.originalname,
+      request.user,
+      unitId,
+    );
   }
   @Post("imports/:id/apply") @RequirePermissions("imports.manage") apply(
     @Param("id") id: string,
     @Body() body: unknown,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
-    const b = parse(
+    const input = parse(
       z
         .object({
           decisions: z
@@ -711,13 +675,14 @@ export class ApiController {
         .strict(),
       body,
     );
-    return this.imports.apply(parse(uuid, id), b.decisions, r.user);
+    return this.imports.apply(parse(uuid, id), input.decisions, request.user);
   }
   @Post("assets/:id/photos")
   @RequirePermissions("photos.upload")
   @ApiConsumes("multipart/form-data")
   @ApiBody(fileBody)
   @UseInterceptors(
+    ResourceLimitInterceptor,
     FileInterceptor("file", {
       limits: { fileSize: 8 * 1024 * 1024, files: 1, fields: 0, parts: 1 },
     }),
@@ -727,13 +692,13 @@ export class ApiController {
     @Query("eventId") eventId: string | undefined,
     @Query("uploadId") uploadId: string | undefined,
     @UploadedFile() file: Express.Multer.File,
-    @Req() r: AuthRequest,
+    @Req() request: AuthRequest,
   ) {
     return this.files.upload(
       parse(uuid, id),
       eventId ? parse(uuid, eventId) : undefined,
       file,
-      r.user,
+      request.user,
       uploadId ? parse(uuid, uploadId) : undefined,
     );
   }
@@ -761,6 +726,7 @@ export class ApiController {
   }
   @Get("reports/:kind/preview")
   @RequirePermissions("reports.export")
+  @UseInterceptors(ResourceLimitInterceptor)
   async reportPreview(
     @Param("kind") kind: string,
     @Query() query: Record<string, string>,
@@ -779,7 +745,10 @@ export class ApiController {
       filters: report.filters,
     };
   }
-  @Get("reports/:kind") @RequirePermissions("reports.export") async report(
+  @Get("reports/:kind")
+  @RequirePermissions("reports.export")
+  @UseInterceptors(ResourceLimitInterceptor)
+  async report(
     @Param("kind") kind: string,
     @Query() query: Record<string, string>,
     @Res() res: Response,
