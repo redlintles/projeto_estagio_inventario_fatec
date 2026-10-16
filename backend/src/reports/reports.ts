@@ -1,10 +1,17 @@
 import { BadRequestException } from "@nestjs/common";
-import { DataSource, In } from "typeorm";
+import { DataSource } from "typeorm";
 import { z } from "zod";
-import * as XLSX from "xlsx";
 import { AssetsService } from "../assets/assets.service";
 import * as S from "../persistence/schemas";
 import { parse, uuid } from "../validation";
+import { displayCell } from "./report-format";
+import {
+  MAX_REPORT_ROWS,
+  readReportEvents,
+  assertReportSize,
+} from "./report-query";
+export { csvReport, workbookReport, displayCell } from "./report-format";
+
 export const reportNames: Record<string, string> = {
   byLocation: "Ativos",
   available: "Disponibilizados",
@@ -85,7 +92,7 @@ export class ReportsService {
     private assets: AssetsService,
   ) {}
   async build(kind: string, query: Record<string, string>): Promise<Report> {
-    if (!reportNames[kind])
+    if (!Object.hasOwn(reportNames, kind))
       throw new BadRequestException("Relatório inexistente.");
     const { format, dateFrom, dateTo, ...filters } = parse(querySchema, query);
     if (dateFrom && dateTo && dateFrom > dateTo)
@@ -102,13 +109,29 @@ export class ReportsService {
         "Status incompatível com o relatório escolhido.",
       );
     if (forced[kind]) filters.status = forced[kind];
+    const assetQuery = this.assets
+      .filteredQuery(filters)
+      .take(MAX_REPORT_ROWS + 1);
+    const historical = ["movements", "divergences", "inventories"].includes(
+      kind,
+    );
+    // Nos relatórios de bens, o período já reduz a consulta antes do limite.
+    if (!historical) {
+      if (dateFrom)
+        assetQuery.andWhere("a.incorporationDate >= :dateFrom", { dateFrom });
+      if (dateTo)
+        assetQuery.andWhere("a.incorporationDate <= :dateTo", { dateTo });
+    }
     const [records, units, locations, users, inventories] = await Promise.all([
-      this.assets.list(filters, true),
+      assetQuery.getMany(),
       this.db.getRepository(S.UnitSchema).find(),
       this.db.getRepository(S.LocationSchema).find(),
-      this.db.getRepository(S.UserSchema).find(),
+      this.db
+        .getRepository(S.UserSchema)
+        .find({ select: { id: true, name: true } }),
       this.db.getRepository(S.InventorySchema).find(),
     ]);
+    assertReportSize(records.length);
     const assetMap = new Map(records.map((a) => [a.id, a]));
     const reference = (code: string, label: string) =>
       /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(code) ? label : `${code} · ${label}`;
@@ -151,18 +174,6 @@ export class ReportsService {
         }
       } catch {}
       return readable(text);
-    };
-    const inPeriod = (value: Date | string) => {
-      const day =
-        typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
-          ? value
-          : new Intl.DateTimeFormat("en-CA", {
-              timeZone: "America/Sao_Paulo",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            }).format(new Date(value));
-      return (!dateFrom || day >= dateFrom) && (!dateTo || day <= dateTo);
     };
     const baseColumns = [
       "Patrimônio",
@@ -231,23 +242,25 @@ export class ReportsService {
       };
       if (ids.length)
         rows = (
-          await this.db.getRepository(S.MovementSchema).find({
-            where: { assetId: In(ids) },
-            order: { createdAt: "DESC", id: "ASC" },
-          })
-        )
-          .filter((m) => inPeriod(m.createdAt))
-          .map((m) => [
-            ...base(m.assetId),
-            m.createdAt,
-            operations[m.operation] ?? m.operation,
-            user(m.userId),
-            changes(
-              m.before as unknown as Record<string, unknown>,
-              m.after as unknown as Record<string, unknown>,
-            ),
-            noteText(m.notes),
-          ]);
+          await readReportEvents(
+            this.db,
+            S.MovementSchema,
+            ids,
+            "createdAt",
+            dateFrom,
+            dateTo,
+          )
+        ).map((m) => [
+          ...base(m.assetId),
+          m.createdAt,
+          operations[m.operation] ?? m.operation,
+          user(m.userId),
+          changes(
+            m.before as unknown as Record<string, unknown>,
+            m.after as unknown as Record<string, unknown>,
+          ),
+          noteText(m.notes),
+        ]);
     } else if (kind === "divergences") {
       columns = [
         ...baseColumns,
@@ -263,24 +276,26 @@ export class ReportsService {
       ];
       if (ids.length)
         rows = (
-          await this.db.getRepository(S.DivergenceSchema).find({
-            where: { assetId: In(ids) },
-            order: { createdAt: "DESC", id: "ASC" },
-          })
-        )
-          .filter((d) => inPeriod(d.createdAt))
-          .map((d) => [
-            ...base(d.assetId),
-            location(d.locationId),
-            types[d.type] ?? d.type,
-            d.foundDescription,
-            readable(d.notes),
-            d.status === "PENDING" ? "Pendente" : "Resolvida",
-            readable(d.resolution ?? ""),
-            user(d.userId),
-            d.createdAt,
-            d.resolvedAt ?? "",
-          ]);
+          await readReportEvents(
+            this.db,
+            S.DivergenceSchema,
+            ids,
+            "createdAt",
+            dateFrom,
+            dateTo,
+          )
+        ).map((d) => [
+          ...base(d.assetId),
+          location(d.locationId),
+          types[d.type] ?? d.type,
+          d.foundDescription,
+          readable(d.notes),
+          d.status === "PENDING" ? "Pendente" : "Resolvida",
+          readable(d.resolution ?? ""),
+          user(d.userId),
+          d.createdAt,
+          d.resolvedAt ?? "",
+        ]);
     } else if (kind === "inventories") {
       columns = [
         ...baseColumns,
@@ -291,21 +306,21 @@ export class ReportsService {
       ];
       if (ids.length)
         rows = (
-          await this.db.getRepository(S.InventoryItemSchema).find({
-            where: { assetId: In(ids) },
-            order: { observedAt: "DESC", id: "ASC" },
-          })
-        )
-          .filter((i) => inPeriod(i.observedAt))
-          .map((i) => [
-            ...base(i.assetId),
-            inventoryMap.get(i.inventoryId) ?? "Inventário indisponível",
-            i.result === "CONFIRMED"
-              ? "Conferência correta"
-              : "Com divergência",
-            user(i.userId),
-            i.observedAt,
-          ]);
+          await readReportEvents(
+            this.db,
+            S.InventoryItemSchema,
+            ids,
+            "observedAt",
+            dateFrom,
+            dateTo,
+          )
+        ).map((i) => [
+          ...base(i.assetId),
+          inventoryMap.get(i.inventoryId) ?? "Inventário indisponível",
+          i.result === "CONFIRMED" ? "Conferência correta" : "Com divergência",
+          user(i.userId),
+          i.observedAt,
+        ]);
     } else {
       columns = [
         ...baseColumns,
@@ -316,17 +331,15 @@ export class ReportsService {
         "Condição física",
         "Valor (R$)",
       ];
-      rows = records
-        .filter((a) => inPeriod(a.incorporationDate))
-        .map((a) => [
-          ...base(a.id),
-          a.originUnit,
-          a.uniqueCode,
-          new Date(`${a.incorporationDate}T00:00:00Z`),
-          statuses[a.status],
-          a.condition ?? "Não avaliada",
-          Number(a.value),
-        ]);
+      rows = records.map((a) => [
+        ...base(a.id),
+        a.originUnit,
+        a.uniqueCode,
+        new Date(`${a.incorporationDate}T00:00:00Z`),
+        statuses[a.status],
+        a.condition ?? "Não avaliada",
+        Number(a.value),
+      ]);
     }
     const filterLabels: Record<string, string> = {
       patrimony: "Patrimônio contém",
@@ -368,123 +381,4 @@ export class ReportsService {
       generatedAt: new Date(),
     };
   }
-}
-export function displayCell(value: ReportCell, column = ""): string {
-  if (value instanceof Date && column === "Data de incorporação")
-    return value.toISOString().slice(0, 10).split("-").reverse().join("/");
-  if (value instanceof Date)
-    return new Intl.DateTimeFormat("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(value);
-  if (typeof value === "number" && column === "Valor (R$)")
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  return String(value);
-}
-export function csvReport(report: Report) {
-  const cell = (value: ReportCell, column = "") => {
-    let text =
-      value instanceof Date
-        ? displayCell(value, column)
-        : typeof value === "number"
-          ? (column === "Valor (R$)"
-              ? value.toFixed(2)
-              : String(value)
-            ).replace(".", ",")
-          : value;
-    if (/^[\s\u0000-\u001f]*[=+\-@]|^[\t\r\n]/.test(text)) text = "'" + text;
-    return '"' + text.replace(/"/g, '""') + '"';
-  };
-  return (
-    "\ufeff" +
-    [report.columns, ...report.rows]
-      .map((row) => row.map((v, c) => cell(v, report.columns[c])).join(";"))
-      .join("\r\n")
-  );
-}
-export function workbookReport(report: Report, format: "xlsx" | "ods"): Buffer {
-  const book = XLSX.utils.book_new();
-  // Date cells store Brazilian wall-clock time; numeric currency cells remain calculable.
-  const values = report.rows.map((row) =>
-    row.map((v, c) =>
-      v instanceof Date
-        ? (report.columns[c] === "Data de incorporação"
-            ? v.getTime()
-            : new Date(
-                new Intl.DateTimeFormat("sv-SE", {
-                  timeZone: "America/Sao_Paulo",
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hourCycle: "h23",
-                })
-                  .format(v)
-                  .replace(" ", "T") + "Z",
-              ).getTime()) /
-            86400000 +
-          25569
-        : v,
-    ),
-  );
-  const sheet = XLSX.utils.aoa_to_sheet([report.columns, ...values], {
-    dateNF: "dd/mm/yyyy hh:mm",
-  });
-  sheet["!cols"] = report.columns.map((c) => ({
-    wch:
-      c.includes("Descrição") || c === "Alterações" || c === "Observações"
-        ? 60
-        : c.includes("Unidade") ||
-            c.includes("Localização") ||
-            c.includes("Inventário")
-          ? 35
-          : 25,
-  }));
-  sheet["!autofilter"] = { ref: sheet["!ref"]! };
-  report.rows.forEach((row, r) =>
-    row.forEach((v, c) => {
-      const cell = sheet[XLSX.utils.encode_cell({ r: r + 1, c })];
-      if (v instanceof Date)
-        cell.z =
-          report.columns[c] === "Data de incorporação"
-            ? "dd/mm/yyyy"
-            : "dd/mm/yyyy hh:mm";
-      if (report.columns[c] === "Valor (R$)") cell.z = '"R$" #,##0.00';
-    }),
-  );
-  const info = XLSX.utils.aoa_to_sheet([
-    ["Relatório", report.title],
-    ["Gerado em (São Paulo)", displayCell(report.generatedAt)],
-    ["Quantidade de registros", report.rows.length],
-    ...Object.entries(report.filters),
-    [
-      "Critérios",
-      Object.keys(report.filters).length === 1
-        ? "Todos os registros"
-        : "Conforme filtros acima",
-    ],
-    [
-      "Observação",
-      "Unidade e localização correspondem ao cadastro atual. UUIDs internos não são exportados.",
-    ],
-    [
-      "Datas",
-      "Datas e horários seguem o fuso de São Paulo; incorporação é uma data civil.",
-    ],
-  ]);
-  info["!cols"] = [{ wch: 32 }, { wch: 100 }];
-  XLSX.utils.book_append_sheet(book, sheet, "Dados");
-  XLSX.utils.book_append_sheet(book, info, "Sobre o relatório");
-  return XLSX.write(book, {
-    bookType: format,
-    type: "buffer",
-    cellStyles: true,
-    compression: true,
-  });
 }

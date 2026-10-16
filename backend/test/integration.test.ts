@@ -870,6 +870,34 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
       reports.build("byLocation", { format: "exe" }),
     ).rejects.toThrow();
   });
+  it("filtra o histórico no banco pelos limites do dia em São Paulo", async () => {
+    const asset = await create("report-timezone");
+    const repository = db.getRepository(MovementSchema);
+    const movement = (await repository.findBy({ assetId: asset.id }))[0];
+    await repository.update(movement.id, {
+      createdAt: new Date("2026-10-16T02:59:59Z"),
+    });
+    await repository.save({
+      ...movement,
+      id: randomUUID(),
+      createdAt: new Date("2026-10-16T03:00:00Z"),
+    });
+    await repository.save({
+      ...movement,
+      id: randomUUID(),
+      createdAt: new Date("2026-10-17T03:00:00Z"),
+    });
+    const report = await new ReportsService(db, assets).build("movements", {
+      patrimony: asset.patrimony,
+      dateFrom: "2026-10-16",
+      dateTo: "2026-10-16",
+    });
+    expect(report.rows).toHaveLength(1);
+    expect(report.rows[0][5]).toEqual(new Date("2026-10-16T03:00:00Z"));
+    await expect(
+      new ReportsService(db, assets).build("toString", {}),
+    ).rejects.toThrow("inexistente");
+  });
   it("refaz lotes com versões e eventos e recusa alterações posteriores", async () => {
     const records = (
       await Promise.all([create("redo-one"), create("redo-two")])
@@ -999,9 +1027,55 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
       [records.map((a) => a.id)],
     );
     expect(audit.count).toBe(3903);
+    const historyReport = await new ReportsService(db, assets).build(
+      "movements",
+      { group: "BULK-PERFORMANCE" },
+    );
+    expect(historyReport.rows).toHaveLength(3903);
+    const historyDates = historyReport.rows.map((row) =>
+      (row[5] as Date).getTime(),
+    );
+    expect(historyDates).toEqual(
+      [...historyDates].sort((left, right) => right - left),
+    );
+
     console.log(
       `Lote de 1301 ativos: aplicar/desfazer/refazer em ${timings.join("/")} ms, menos de 25 consultas por operação.`,
     );
+  });
+  it("recusa exportação acima do limite e aplica o período antes de contar bens", async () => {
+    const base = await create("report-limit-base");
+    const repository = db.getRepository(AssetSchema);
+    try {
+      for (let offset = 0; offset < 20001; offset += 500) {
+        const records = Array.from(
+          { length: Math.min(500, 20001 - offset) },
+          (_, index) => ({
+            ...base,
+            id: randomUUID(),
+            patrimony: `REPORT-LIMIT-${offset + index}`,
+            group: "REPORT-LIMIT",
+            unitId: null,
+            locationId: null,
+          }),
+        );
+        await repository.insert(records);
+      }
+      const reports = new ReportsService(db, assets);
+      await expect(
+        reports.build("byLocation", { group: "REPORT-LIMIT" }),
+      ).rejects.toThrow("nenhum arquivo parcial");
+      expect(
+        (
+          await reports.build("byLocation", {
+            group: "REPORT-LIMIT",
+            dateFrom: "2027-01-01",
+          })
+        ).rows,
+      ).toHaveLength(0);
+    } finally {
+      await repository.delete({ group: "REPORT-LIMIT" });
+    }
   });
   it("reverte blocos já processados se a auditoria falhar no bloco seguinte", async () => {
     const base = await create("rollback-base");

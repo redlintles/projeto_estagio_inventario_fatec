@@ -55,7 +55,8 @@ export function Reports({ state }: { state: AppState }) {
         <p>
           Escolha o conteúdo, refine os critérios e confira a prévia antes de
           exportar. Os filtros abrangem todos os resultados, em todas as
-          páginas.
+          páginas. Cada solicitação aceita até 20.000 bens candidatos ou
+          registros; acima disso, refine os filtros e exporte em partes.
         </p>
         <div className="asset-filter-grid">
           <label>

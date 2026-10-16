@@ -64,7 +64,7 @@ export class AssetsService {
     await this.audit(m, asset, before, operation, actor, notes);
     return asset;
   }
-  async list(filters: Record<string, string>, all = false) {
+  filteredQuery(filters: Record<string, string>) {
     parse(
       z
         .object({
@@ -94,7 +94,10 @@ export class AssetsService {
         query.andWhere(`a.${key} ILIKE :${key}`, {
           [key]: `%${filters[key]}%`,
         });
-    query.orderBy("a.patrimony");
+    return query.orderBy("a.patrimony");
+  }
+  async list(filters: Record<string, string>, all = false) {
+    const query = this.filteredQuery(filters);
     if (!all) {
       const offset = Number(filters.offset ?? 0),
         limit = Number(filters.limit ?? 1000);

@@ -128,6 +128,16 @@ export class ApiError extends Error {
     super(message);
   }
 }
+async function responseError(response: Response): Promise<ApiError> {
+  const data = await response.json().catch(() => null);
+  return new ApiError(
+    typeof data?.message === "string"
+      ? data.message
+      : "Não foi possível concluir a solicitação. Confira a conexão e tente novamente.",
+    response.status,
+  );
+}
+
 export async function request<T>(
   path: string,
   token: string,
@@ -143,22 +153,14 @@ export async function request<T>(
     },
     body: body ? (form ? body : JSON.stringify(body)) : undefined,
   });
-  if (!response.ok) {
-    const data = await response
-      .json()
-      .catch(() => ({ message: "Falha de comunicação." }));
-    throw new ApiError(
-      typeof data.message === "string" ? data.message : JSON.stringify(data),
-      response.status,
-    );
-  }
+  if (!response.ok) throw await responseError(response);
   return response.json();
 }
 export async function download(path: string, token: string, filename: string) {
   const response = await fetch(`${apiUrl}/${path}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error("Não foi possível obter o arquivo.");
+  if (!response.ok) throw await responseError(response);
   const url = URL.createObjectURL(await response.blob());
   const a = document.createElement("a");
   a.href = url;

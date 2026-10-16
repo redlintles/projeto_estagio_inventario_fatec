@@ -1,3 +1,4 @@
+import { assertReportSize, MAX_REPORT_ROWS } from "../src/reports/report-query";
 import { describe, it, expect } from "vitest";
 import * as XLSX from "xlsx";
 import {
@@ -26,6 +27,12 @@ const report: Report = {
   generatedAt: new Date("2026-10-15T15:30:00Z"),
 };
 describe("Exportação legível de relatórios", () => {
+  it("recusa relatórios excessivos explicitamente, sem truncar o arquivo", () => {
+    expect(() => assertReportSize(MAX_REPORT_ROWS)).not.toThrow();
+    expect(() => assertReportSize(MAX_REPORT_ROWS + 1)).toThrow(
+      "nenhum arquivo parcial",
+    );
+  });
   it("mantém CSV seguro com cabeçalhos mesmo vazio, acentos, decimais e datas civis", () => {
     const csv = csvReport(report);
     expect(csv.startsWith("\ufeff")).toBe(true);
