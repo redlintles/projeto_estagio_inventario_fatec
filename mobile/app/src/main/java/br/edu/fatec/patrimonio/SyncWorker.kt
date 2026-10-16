@@ -21,8 +21,7 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
       val api = Api(session)
       var retry = false
       try {
-        for (op in
-          store.operations(owner).filter { it.state in listOf("PENDING", "PHOTO_PENDING") }) {
+        for (op in store.operations(owner, activeOnly = true)) {
           if (session.userId != owner || session.apiUrl != server || session.token != token)
             return@withContext Result.success()
           var photoStage = op.state == "PHOTO_PENDING"

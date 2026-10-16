@@ -65,6 +65,32 @@ class LocalStore(
     )
   }
 
+  fun cacheBase(data: Map<String, JSONArray>, updatedAt: String): Map<String, JSONArray> =
+    synchronized(LocalStore::class.java) {
+      val result = data.toMutableMap()
+      val previous = snapshot("assets").objects().associateBy { it.optString("id") }
+      data["assets"]?.let { fresh ->
+        result["assets"] =
+          JSONArray(
+            fresh.objects().map { asset ->
+              previous[asset.optString("id")]?.takeIf {
+                it.optInt("version") > asset.optInt("version")
+              } ?: asset
+            }
+          )
+      }
+      val db = writableDatabase
+      db.beginTransaction()
+      try {
+        result.forEach { (name, rows) -> cache(name, rows) }
+        cache("metadata", JSONArray().put(JSONObject().put("updatedAt", updatedAt)))
+        db.setTransactionSuccessful()
+      } finally {
+        db.endTransaction()
+      }
+      result
+    }
+
   fun queue(
     userId: String,
     inventoryId: String,
@@ -104,11 +130,11 @@ class LocalStore(
     }
   }
 
-  fun operations(userId: String): List<PendingOperation> {
+  fun operations(userId: String, activeOnly: Boolean = false): List<PendingOperation> {
     val list = mutableListOf<PendingOperation>()
     readableDatabase
       .rawQuery(
-        "SELECT id,inventory_id,asset_id,payload,state,error,photo,event_id,asset_label,created_at FROM operations WHERE user_id=? AND server_key=? ORDER BY rowid",
+        "SELECT id,inventory_id,asset_id,payload,state,error,photo,event_id,asset_label,created_at FROM operations WHERE user_id=? AND server_key=? ${if(activeOnly) "AND state IN ('PENDING','PHOTO_PENDING')" else ""} ORDER BY rowid",
         arrayOf(userId, serverKey()),
       )
       .use { c ->

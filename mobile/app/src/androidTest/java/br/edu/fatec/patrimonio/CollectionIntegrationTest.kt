@@ -209,4 +209,30 @@ class CollectionIntegrationTest {
     assertEquals(2, stats.getInt("photoRequests"))
     assertFalse(photo.exists())
   }
+
+  @Test
+  fun baseRefreshNeverDowngradesAnAssetJustSynchronized() {
+    LocalStore(context).use { store ->
+      store.cache(
+        "assets",
+        JSONArray().put(JSONObject().put("id", "same").put("version", 3).put("unitId", "new-unit")),
+      )
+      val result =
+        store.cacheBase(
+          mapOf(
+            "assets" to
+              JSONArray()
+                .put(JSONObject().put("id", "same").put("version", 2).put("unitId", "old-unit")),
+            "locations" to JSONArray(),
+          ),
+          "2026-10-15T12:00:00Z",
+        )
+      assertEquals(3, result.getValue("assets").getJSONObject(0).getInt("version"))
+      assertEquals("new-unit", store.snapshot("assets").getJSONObject(0).getString("unitId"))
+      assertEquals(
+        "2026-10-15T12:00:00Z",
+        store.snapshot("metadata").getJSONObject(0).getString("updatedAt"),
+      )
+    }
+  }
 }
