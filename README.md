@@ -104,6 +104,8 @@ cd mobile
 ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
+A revisão de compatibilidade e os limites da validação Android estão em [docs/revisao-android.md](docs/revisao-android.md). O celular permanece focado em identificação, conferência e fotos; as funções de gestão ficam no portal.
+
 O APK de desenvolvimento é gerado em `mobile/app/build/outputs/apk/debug/app-debug.apk`. No login, informe a URL da API. No emulador, use `http://10.0.2.2:3000/api`; em um aparelho conectado à mesma rede do servidor, use o endereço do servidor. A versão release exige HTTPS.
 
 Antes de entrar em uma sala sem internet: faça login, atualize a base e prepare um inventário da sala. Leia os ativos, confira a descrição e confirme. As operações ficam gravadas no SQLite. Consulte a aba Pendências para acompanhar a sincronização e os conflitos. Nunca desinstale o aplicativo com pendências: a desinstalação remove o banco local.

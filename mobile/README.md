@@ -40,7 +40,7 @@ A migração SQLite 1 → 2 preserva operações, caminhos das fotos e identific
 
 Leitura e foto têm etapas distintas. Expiração de sessão durante uma foto não reenfileira a leitura já aceita; falta de permissão em um item não bloqueia os demais. Arquivos permanecem no aparelho até confirmar o envio. Falhas temporárias de rede/HTTP 408/429/5xx são reenviadas com os mesmos UUIDs. Bloqueios de permissão e erros da foto podem ser retomados em Pendências. Uma foto ausente no armazenamento requer revisão; a conferência aceita permanece preservada no servidor.
 
-Fotos são redimensionadas para até 1600 pixels no maior lado, convertidas para JPEG, orientadas e têm metadados removidos uma vez, antes da fila. Isso reduz tráfego e evita o limite de 8 MB / 16 megapixels do backend. O arquivo enfileirado não é recomprimido em cada tentativa.
+Fotos são redimensionadas para até 1600 pixels no maior lado, convertidas para JPEG, orientadas e têm metadados removidos uma vez, antes da fila. Isso reduz tráfego e evita o limite de 8 MB / 16 megapixels do backend. O arquivo enfileirado não é recomprimido em cada tentativa. A atualização da base é gravada em uma transação local e não substitui um bem por uma versão mais antiga do que a recém-confirmada pela sincronização.
 
 ## Testes de integração no emulador descartável
 
