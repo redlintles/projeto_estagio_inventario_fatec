@@ -21,12 +21,72 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
       val api = Api(session)
       var retry = false
       try {
-        for (op in store.operations(owner, activeOnly = true)) {
+        for (op in
+          store.operations(owner, activeOnly = true).sortedBy {
+            if (JSONObject(it.payload).optString("_action") == "CANCEL") 0 else 1
+          }) {
+          // Outra tentativa pode ter sido arquivada após a confirmação do cancelamento.
+          if (store.operations(owner).find { it.id == op.id }?.state == "DISCARDED") continue
           if (session.userId != owner || session.apiUrl != server || session.token != token)
             return@withContext Result.success()
           var photoStage = op.state == "PHOTO_PENDING"
           var eventId = op.eventId
           try {
+            val action = JSONObject(op.payload).optString("_action")
+            if (action.isNotBlank()) {
+              if (
+                action == "COMPLETE" &&
+                  store.operations(owner).any {
+                    it.inventoryId == op.inventoryId &&
+                      it.id != op.id &&
+                      it.state !in listOf("SYNCED", "DISCARDED")
+                  }
+              ) {
+                store.state(
+                  op.id,
+                  "PENDING",
+                  "Aguardando o envio das conferências e fotos deste inventário.",
+                )
+                retry =
+                  retry ||
+                    store.operations(owner).any {
+                      it.inventoryId == op.inventoryId &&
+                        it.id != op.id &&
+                        it.state in listOf("PENDING", "PHOTO_PENDING")
+                    }
+                continue
+              }
+              val result =
+                JSONObject(
+                  api.request(
+                    "inventories/${op.inventoryId}/${if (action == "CANCEL") "cancel" else "complete"}",
+                    JSONObject(),
+                  )
+                )
+              store.state(op.id, "SYNCED")
+              if (action == "CANCEL") store.archiveCancelledReadings(owner, op.inventoryId)
+              synchronized(LocalStore::class.java) {
+                val updated =
+                  store.snapshot("inventories").objects().map { cached ->
+                    if (cached.optString("id") == op.inventoryId) {
+                      cached
+                        .put("status", result.getString("status"))
+                        .put("finishedAt", result.optString("finishedAt"))
+                    } else cached
+                  }
+                store.cache("inventories", org.json.JSONArray(updated))
+              }
+              continue
+            }
+            // Um cancelamento pendente impede enviar novas leituras dessa sessão.
+            if (
+              store.operations(owner).any {
+                it.inventoryId == op.inventoryId &&
+                  JSONObject(it.payload).optString("_action") == "CANCEL" &&
+                  it.state != "DISCARDED"
+              } && op.state != "PHOTO_PENDING"
+            )
+              continue
             if (!photoStage) {
               val result =
                 JSONObject(

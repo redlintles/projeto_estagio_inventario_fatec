@@ -102,7 +102,9 @@ class LocalStore(
     val db = writableDatabase
     db.beginTransaction()
     try {
-      check(inventoryId.isBlank() || !hasReading(userId, inventoryId, assetId)) {
+      check(
+        inventoryId.isBlank() || assetId.isBlank() || !hasReading(userId, inventoryId, assetId)
+      ) {
         "Este bem já possui conferência neste inventário no aparelho."
       }
       val id = UUID.randomUUID().toString()
@@ -177,6 +179,50 @@ class LocalStore(
       )
       .use {
         return it.moveToFirst()
+      }
+  }
+
+  fun queueInventoryAction(userId: String, inventoryId: String, action: String): String {
+    require(action in listOf("CANCEL", "COMPLETE"))
+    val existing =
+      operations(userId).firstOrNull {
+        it.inventoryId == inventoryId &&
+          it.state != "DISCARDED" &&
+          JSONObject(it.payload).optString("_action") == action
+      }
+    if (existing != null) return existing.id
+    if (action == "CANCEL") {
+      operations(userId)
+        .filter {
+          it.inventoryId == inventoryId &&
+            JSONObject(it.payload).optString("_action") == "COMPLETE" &&
+            it.state != "SYNCED"
+        }
+        .forEach { state(it.id, "DISCARDED", "Conclusão substituída por cancelamento.") }
+    }
+    return queue(
+      userId,
+      inventoryId,
+      "",
+      JSONObject().put("_action", action),
+      null,
+      if (action == "CANCEL") "Cancelar inventário" else "Concluir inventário",
+    )
+  }
+
+  fun archiveCancelledReadings(userId: String, inventoryId: String) {
+    operations(userId)
+      .filter {
+        it.inventoryId == inventoryId &&
+          it.assetId.isNotBlank() &&
+          it.state in listOf("PENDING", "BLOCKED", "CONFLICT", "ERROR")
+      }
+      .forEach {
+        state(
+          it.id,
+          "DISCARDED",
+          "Inventário cancelado. Tentativa local preservada; resultados já aceitos no servidor são mantidos.",
+        )
       }
   }
 

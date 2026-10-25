@@ -14,6 +14,12 @@ const location = {
 const inventory = {
   id: "44444444-4444-4444-8444-444444444444",
   locationId: location.id,
+  userId: "test-owner",
+  expectedIds: [
+    "11111111-1111-4111-8111-111111111110",
+    "11111111-1111-4111-8111-111111111111",
+  ],
+  items: [],
   status: "OPEN",
   startedAt: "2026-10-15T12:30:00Z",
 };
@@ -52,6 +58,7 @@ let config = { photoStatus: 200, syncStatus: 200 },
   receipts;
 function reset() {
   stats = {
+    actions: [],
     syncRequests: 0,
     photoRequests: 0,
     uploadIds: [],
@@ -102,6 +109,16 @@ const server = http.createServer(async (req, res) => {
   if (path === "locations") return send([location]);
   if (path === "inventories")
     return send(req.method === "POST" ? inventory : [inventory]);
+  if (/^inventories\/[^/]+\/(cancel|complete)$/.test(path)) {
+    const action = path.endsWith("cancel") ? "CANCELLED" : "CLOSED";
+    stats.actions.push(action);
+    return send({
+      ...inventory,
+      status: action,
+      finishedAt: new Date().toISOString(),
+    });
+  }
+  if (/^inventories\/[^/]+$/.test(path)) return send(inventory);
   if (path === "sync") {
     stats.syncRequests++;
     if (config.syncStatus !== 200)

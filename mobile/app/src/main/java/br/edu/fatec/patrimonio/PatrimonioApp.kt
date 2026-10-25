@@ -53,7 +53,14 @@ fun PatrimonioApp() {
   var locations by remember { mutableStateOf(store.snapshot("locations").objects()) }
   var units by remember { mutableStateOf(store.snapshot("units").objects()) }
   var inventories by remember { mutableStateOf(store.snapshot("inventories").objects()) }
-  var inventoryId by rememberSaveable { mutableStateOf("") }
+  var inventoryId by rememberSaveable {
+    mutableStateOf(
+      store.snapshot("active-inventory").objects().firstOrNull()?.optString("id") ?: ""
+    )
+  }
+  var cancelInventoryDialog by remember { mutableStateOf(false) }
+  var missingAssetId by remember { mutableStateOf<String?>(null) }
+  var completionSplash by remember { mutableStateOf(false) }
   var locationId by rememberSaveable { mutableStateOf("") }
   var code by rememberSaveable { mutableStateOf("") }
   var candidates by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -160,8 +167,29 @@ fun PatrimonioApp() {
           }
         }
       }
+    val previousInventories = inventories.associateBy { it.optString("id") }
+    val mergedInventories =
+      data
+        .getValue("inventories")
+        .objects()
+        .map { fresh ->
+          previousInventories[fresh.optString("id")]?.let { previous ->
+            if (previous.has("items")) fresh.put("items", previous.getJSONArray("items"))
+            if (previous.has("expectedAssets"))
+              fresh.put("expectedAssets", previous.getJSONArray("expectedAssets"))
+          }
+          fresh
+        }
+        .toMutableList()
+    if (inventoryId.isNotBlank()) {
+      val detail =
+        withContext(Dispatchers.IO) { JSONObject(api.request("inventories/$inventoryId")) }
+      val index = mergedInventories.indexOfFirst { it.optString("id") == inventoryId }
+      if (index >= 0) mergedInventories[index] = detail
+    }
+    val completeData = data + ("inventories" to JSONArray(mergedInventories))
     val updatedAt = Instant.now().toString()
-    val stored = withContext(Dispatchers.IO) { store.cacheBase(data, updatedAt) }
+    val stored = withContext(Dispatchers.IO) { store.cacheBase(completeData, updatedAt) }
     assets = stored.getValue("assets").objects()
     locations = stored.getValue("locations").objects()
     units = stored.getValue("units").objects()
@@ -172,8 +200,7 @@ fun PatrimonioApp() {
     if (tab == "Identificar" && !session.can("assets.view")) tab = "Ajuda"
     selected =
       selected?.let { previous -> assets.find { it.optString("id") == previous.optString("id") } }
-    if (inventories.none { it.optString("id") == inventoryId && it.optString("status") == "OPEN" })
-      inventoryId = ""
+    if (inventories.none { it.optString("id") == inventoryId }) inventoryId = ""
     if (locations.none { it.optString("id") == locationId && it.optBoolean("active") })
       locationId = ""
   }
@@ -207,9 +234,177 @@ fun PatrimonioApp() {
         delay(3000)
         refresh++
         assets = store.snapshot("assets").objects()
+        inventories = store.snapshot("inventories").objects()
       }
     }
   }
+  @Suppress("UNUSED_VARIABLE") val inventoryRevision = refresh
+  val currentInventory = inventories.find { it.optString("id") == inventoryId }
+  val inventoryOperations =
+    if (logged && inventoryId.isNotBlank())
+      store.operations(session.userId).filter { it.inventoryId == inventoryId }
+    else emptyList()
+  val expectedIds =
+    currentInventory
+      ?.optJSONArray("expectedIds")
+      ?.let { rows -> (0 until rows.length()).map { rows.getString(it) } }
+      .orEmpty()
+  val progress =
+    inventoryProgress(
+      expectedIds,
+      currentInventory?.optJSONArray("items")?.objects().orEmpty().associate {
+        it.optString("assetId") to it.optString("result")
+      },
+      inventoryOperations
+        .filter { it.assetId.isNotBlank() }
+        .map {
+          LocalInventoryResult(it.assetId, JSONObject(it.payload).optBoolean("notFound"), it.state)
+        },
+    )
+  val cancelRequested =
+    inventoryOperations.any {
+      JSONObject(it.payload).optString("_action") == "CANCEL" && it.state != "DISCARDED"
+    }
+  val collecting =
+    currentInventory?.optString("status") == "OPEN" &&
+      currentInventory.has("items") &&
+      !cancelRequested &&
+      progress.remaining.isNotEmpty()
+  val canManageInventory =
+    session.can("inventories.manage") &&
+      (currentInventory?.optString("userId") == session.userId || session.role == "ADMIN")
+  LaunchedEffect(logged, inventoryId) {
+    if (logged)
+      store.cache("active-inventory", JSONArray().put(JSONObject().put("id", inventoryId)))
+  }
+  LaunchedEffect(inventoryId, refresh, currentInventory?.optString("status")) {
+    if (
+      logged &&
+        currentInventory?.optString("status") == "OPEN" &&
+        currentInventory.has("items") &&
+        progress.remaining.isEmpty() &&
+        !cancelRequested &&
+        canManageInventory
+    ) {
+      store.queueInventoryAction(session.userId, inventoryId, "COMPLETE")
+      val acknowledged = store.snapshot("completion-$inventoryId").length() > 0
+      if (!acknowledged) {
+        completionSplash = true
+        store.cache("completion-$inventoryId", JSONArray().put(JSONObject().put("shown", true)))
+      }
+      SyncWorker.schedule(context)
+    }
+  }
+  if (cancelInventoryDialog)
+    AlertDialog(
+      onDismissRequest = { cancelInventoryDialog = false },
+      title = { Text("Cancelar inventário?") },
+      text = {
+        Text(
+          "Os resultados já aceitos pelo servidor serão preservados. Leituras locais ainda não enviadas serão arquivadas após o cancelamento. Se estiver offline, a sala continuará bloqueada até sincronizar o pedido."
+        )
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            store.queueInventoryAction(session.userId, inventoryId, "CANCEL")
+            cancelInventoryDialog = false
+            completionSplash = false
+            selected = null
+            scanner = false
+            photoPath?.let { File(it).delete() }
+            photoPath = null
+            refresh++
+            SyncWorker.schedule(context)
+            message =
+              "Cancelamento salvo. Acompanhe a sincronização para confirmar a liberação da sala."
+          }
+        ) {
+          Text("Confirmar cancelamento")
+        }
+      },
+      dismissButton = {
+        TextButton(onClick = { cancelInventoryDialog = false }) { Text("Continuar inventário") }
+      },
+    )
+  missingAssetId?.let { id ->
+    val asset =
+      assets.find { it.optString("id") == id }
+        ?: currentInventory?.optJSONArray("expectedAssets")?.objects()?.find {
+          it.optString("id") == id
+        }
+    AlertDialog(
+      onDismissRequest = { missingAssetId = null },
+      title = { Text("Bem não encontrado?") },
+      text = {
+        Text(
+          "${asset?.optString("patrimony") ?: id} · ${asset?.optString("description") ?: "Bem esperado"}. Esta ausência será registrada sem dar baixa nem mudar a localização oficial."
+        )
+      },
+      confirmButton = {
+        TextButton(
+          onClick = {
+            store.queue(
+              session.userId,
+              inventoryId,
+              id,
+              JSONObject()
+                .put("assetId", id)
+                .put("notFound", true)
+                .put("observedAt", Instant.now().toString()),
+              null,
+              "${asset?.optString("patrimony") ?: id} · Não encontrado",
+            )
+            missingAssetId = null
+            selected = null
+            refresh++
+            SyncWorker.schedule(context)
+          }
+        ) {
+          Text("Registrar não encontrado")
+        }
+      },
+      dismissButton = { TextButton(onClick = { missingAssetId = null }) { Text("Voltar à busca") } },
+    )
+  }
+  if (completionSplash)
+    Dialog(
+      onDismissRequest = { completionSplash = false },
+      properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+      Surface(Modifier.fillMaxSize(), color = Color(0xFFE3F3F1), contentColor = Color(0xFF12323D)) {
+        Column(
+          Modifier.padding(32.dp),
+          verticalArrangement = Arrangement.Center,
+          horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+          Text("✓", style = MaterialTheme.typography.displayLarge)
+          Text("Inventário concluído", style = MaterialTheme.typography.headlineLarge)
+          Text(
+            "${progress.found.size} encontrados · ${progress.notFound.size} não encontrados · ${progress.total} esperados"
+          )
+          Text(
+            if (
+              inventoryOperations.any {
+                JSONObject(it.payload).optString("_action") == "COMPLETE" && it.state == "SYNCED"
+              }
+            )
+              "Dados sincronizados com o servidor."
+            else
+              "A coleta local terminou. Sincronize os dados com o servidor e confira a confirmação de envio, inclusive das fotos."
+          )
+          Button(
+            onClick = {
+              completionSplash = false
+              SyncWorker.schedule(context)
+              refresh++
+            }
+          ) {
+            Text("Sincronizar e acompanhar")
+          }
+        }
+      }
+    }
   DisposableEffect(Unit) { onDispose { store.close() } }
   LaunchedEffect(tab) { contentScroll.scrollTo(0) }
   archiveOperation?.let { operation ->
@@ -434,6 +629,8 @@ fun PatrimonioApp() {
                 session.token = login.getString("token")
                 session.userId = id
                 session.updateAccess(login.getJSONObject("user"))
+                inventoryId =
+                  store.snapshot("active-inventory").objects().firstOrNull()?.optString("id") ?: ""
                 password = ""
                 logged = true
                 reload()
@@ -559,7 +756,7 @@ fun PatrimonioApp() {
               }
             }
           } else {
-            if (tab == "Inventário") {
+            if (tab == "Inventário" && currentInventory == null) {
               if (!session.can("inventories.manage"))
                 Text(
                   "Sua conta não possui a tarefa de realizar inventários. Solicite ao administrador; as pendências existentes serão preservadas."
@@ -607,6 +804,7 @@ fun PatrimonioApp() {
                   inventories
                     .filter {
                       it.optString("status") == "OPEN" &&
+                        (it.optString("userId") == session.userId || session.role == "ADMIN") &&
                         (locationId.isBlank() || it.optString("locationId") == locationId)
                     }
                     .map {
@@ -618,12 +816,52 @@ fun PatrimonioApp() {
                   selected = null
                   photoPath?.let { path -> File(path).delete() }
                   photoPath = null
-                  inventoryId = it
-                  locationId =
-                    inventories.find { i -> i.getString("id") == it }?.optString("locationId")
-                      ?: locationId
+                  val chosenId = it
+                  work {
+                    val cached = inventories.find { i -> i.optString("id") == chosenId }
+                    val detail =
+                      try {
+                        withContext(Dispatchers.IO) {
+                          JSONObject(Api(session).request("inventories/$chosenId"))
+                        }
+                      } catch (e: Exception) {
+                        cached?.takeIf { row -> row.has("items") } ?: throw e
+                      }
+                    inventories =
+                      inventories.map { row ->
+                        if (row.optString("id") == chosenId) detail else row
+                      }
+                    store.cache("inventories", JSONArray(inventories))
+                    inventoryId = chosenId
+                    locationId = detail.optString("locationId")
+                  }
                 }
               }
+            }
+            if (tab == "Inventário" && currentInventory != null && currentInventory.has("items")) {
+              InventoryPanel(
+                currentInventory,
+                progress,
+                assets,
+                inventoryOperations,
+                locations
+                  .find { it.optString("id") == currentInventory.optString("locationId") }
+                  ?.optString("description") ?: "Localização",
+                canManageInventory,
+                busy,
+                onCancel = { cancelInventoryDialog = true },
+                onSync = {
+                  SyncWorker.schedule(context)
+                  refresh++
+                  message = "Sincronização agendada. Aguarde a confirmação dos envios."
+                },
+                onNext = {
+                  inventoryId = ""
+                  locationId = ""
+                  selected = null
+                  code = ""
+                },
+              )
             }
             SectionCard(
               if (tab == "Inventário") "2 Identificar o bem" else "Identificar e fotografar",
@@ -646,19 +884,38 @@ fun PatrimonioApp() {
                   label = { Text("Código de barras / patrimônio") },
                   modifier = Modifier.weight(1f),
                 )
-                Button(enabled = code.isNotBlank() && !busy, onClick = { lookup(code) }) {
+                Button(
+                  enabled = code.isNotBlank() && !busy && (tab != "Inventário" || collecting),
+                  onClick = { lookup(code) },
+                ) {
                   Text("Buscar")
                 }
               }
               Button(
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                enabled = !busy && (tab != "Inventário" || inventoryId.isNotBlank()),
+                enabled = !busy && (tab != "Inventário" || collecting),
                 onClick = { scanner = true },
               ) {
                 Text("Ler com câmera")
               }
               if (tab == "Inventário" && inventoryId.isBlank())
                 Text("Selecione um inventário aberto antes de iniciar a leitura.")
+            }
+            if (
+              tab == "Inventário" &&
+                collecting &&
+                currentInventory != null &&
+                selected == null &&
+                candidates.isEmpty()
+            ) {
+              InventoryExpectedList(
+                currentInventory,
+                progress,
+                assets,
+                canManageInventory,
+                busy,
+                onMissing = { missingAssetId = it },
+              )
             }
             if (selected == null && tab == "Identificar")
               Text(
@@ -807,7 +1064,9 @@ fun PatrimonioApp() {
                       Button(
                         modifier = Modifier.fillMaxWidth(),
                         enabled =
-                          canCollect(asset.optString("status")) &&
+                          collecting &&
+                            canManageInventory &&
+                            canCollect(asset.optString("status")) &&
                             inventories.any {
                               it.optString("id") == inventoryId && it.optString("status") == "OPEN"
                             } &&

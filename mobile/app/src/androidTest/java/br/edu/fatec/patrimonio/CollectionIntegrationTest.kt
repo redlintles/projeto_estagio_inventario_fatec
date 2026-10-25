@@ -235,4 +235,57 @@ class CollectionIntegrationTest {
       )
     }
   }
+
+  @Test
+  fun cancellationIsDurableDeduplicatedAndArchivesOnlyUnsentReadings() = runBlocking {
+    val api = Api(session)
+    api.request("test/reset", JSONObject())
+    LocalStore(context).use { store ->
+      store.queue(session.userId, "inv", "asset", JSONObject().put("assetId", "asset"), null)
+      val complete = store.queueInventoryAction(session.userId, "inv", "COMPLETE")
+      val cancel = store.queueInventoryAction(session.userId, "inv", "CANCEL")
+      assertEquals(cancel, store.queueInventoryAction(session.userId, "inv", "CANCEL"))
+      assertEquals("DISCARDED", store.operations(session.userId).find { it.id == complete }?.state)
+    }
+    TestListenableWorkerBuilder<SyncWorker>(context).build().doWork()
+    LocalStore(context).use { store ->
+      val operations = store.operations(session.userId)
+      assertEquals("DISCARDED", operations.first { it.assetId == "asset" }.state)
+      assertEquals(
+        "SYNCED",
+        operations.first { JSONObject(it.payload).optString("_action") == "CANCEL" }.state,
+      )
+    }
+    val stats = JSONObject(api.request("test/status"))
+    assertEquals(0, stats.getInt("syncRequests"))
+    assertEquals("CANCELLED", stats.getJSONArray("actions").getString(0))
+  }
+
+  @Test
+  fun completionWaitsForPhotoAndOnlyClosesAfterEveryStageIsSynced() = runBlocking {
+    val api = Api(session)
+    api.request("test/reset", JSONObject().put("photoStatus", 403))
+    val photo =
+      File(context.filesDir, "completion-photo.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+    LocalStore(context).use { store ->
+      store.queue(session.userId, "inv", "asset", JSONObject().put("assetId", "asset"), photo.path)
+      store.queueInventoryAction(session.userId, "inv", "COMPLETE")
+    }
+    TestListenableWorkerBuilder<SyncWorker>(context).build().doWork()
+    assertEquals(0, JSONObject(api.request("test/status")).getJSONArray("actions").length())
+    LocalStore(context).use { store ->
+      val blocked = store.operations(session.userId).first { it.assetId == "asset" }
+      assertEquals("PHOTO_ERROR", blocked.state)
+      store.state(blocked.id, "PHOTO_PENDING")
+    }
+    api.request("test/config", JSONObject().put("photoStatus", 200))
+    TestListenableWorkerBuilder<SyncWorker>(context).build().doWork()
+    val stats = JSONObject(api.request("test/status"))
+    assertEquals(1, stats.getInt("syncRequests"))
+    assertEquals("CLOSED", stats.getJSONArray("actions").getString(0))
+    LocalStore(context).use { store ->
+      assertTrue(store.operations(session.userId).all { it.state == "SYNCED" })
+    }
+    assertFalse(photo.exists())
+  }
 }
