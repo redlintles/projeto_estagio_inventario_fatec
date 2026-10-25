@@ -152,3 +152,7 @@ Os briefings originais permanecem na raiz. As decisões confirmadas pelo respons
 ## Atualização de operação e coleta (1.2)
 
 O comando padrão `npm start` (ou `./iniciar.sh`) disponibiliza portal e API na LAN e aguarda prontidão. Para acesso somente neste PC, use `npm run demo` ou `./iniciar.sh --local`. Android 1.2 inclui leitor de barras em tela inteira acionado por botão e teste de conexão no login. Consulte o [guia integrado](docs/operacao-lan.md) para endereços, configuração, compilação e validação.
+
+## Identidade visual
+
+O projeto usa uma marca de etiqueta patrimonial com barras e selo de conferência, no verde e azul do próprio sistema. O ícone está no Android 1.2.1 e no favicon, login e cabeçalho do dashboard. Veja a [matriz vetorial e instruções de geração](assets/brand/README.md).

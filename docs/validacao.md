@@ -44,3 +44,11 @@ Consulte [Operação em LAN e coleta Android](operacao-lan.md) para a inicializa
 - `npm start`: compilação Docker, migrations, preservação do administrador e prontidão de PostgreSQL, API e dashboard concluídas. Portas publicadas: API 3000 e portal 8080 em todas as interfaces; PostgreSQL sem porta externa.
 - Saúde, login e consultas `auth/me`, `assets`, `inventories`, `locations` e `units` responderam pela API local, pelo IP LAN e pelo proxy `/api` do dashboard. Portal respondeu HTTP 200 pelo IP LAN. Essas sondagens partiram do próprio servidor; não comprovam regras de firewall ou isolamento Wi-Fi entre máquinas.
 - Sem Android conectado por ADB nesta execução. Testes instrumentados, foco/leitura óptica e aceitação em outra máquina/celular permanecem para homologação local conforme o guia integrado. O APK é de testes, permite HTTP e não substitui a distribuição release assinada.
+
+## Ícone e instalação no aparelho — 25/10/2026
+
+Android 1.2.1 (versionCode 4) compilado com `:app:assembleDebug :app:lintDebug`, sem erros. Novo ícone vetorial nas cores do projeto aplicado ao launcher normal, redondo e temático (Android 13+), além do favicon, login e cabeçalho do dashboard. Matriz e procedimento de geração em `assets/brand/README.md`.
+
+APK instalado com `adb install -r` em Moto G52 com Android 13; versão instalada confirmada por `dumpsys package`, app iniciado e dados preservados pela atualização. O botão Testar conexão no próprio aparelho confirmou **Servidor acessível** no endereço LAN já configurado. O encaminhamento USB da porta 3000 também foi preparado, sem alterar o servidor da sessão. Login, coleta e câmera física não foram exercitados nesta instalação.
+
+Build backend/web, formatação e disponibilidade HTTP da marca e do portal aprovados. Serviços Docker atualizados e saudáveis. APK: `entregaveis/patrimonio-fatec-1.2.1-debug.apk`; SHA-256: `542ae95ab2b5a2983adbfaa4b93702c7111f4d7b4397aeb113eea2eaeec85b86`.

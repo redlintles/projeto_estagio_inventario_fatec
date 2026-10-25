@@ -56,3 +56,9 @@ Os testes verificam migração sem apagar fila/fotos, isolamento de servidor/con
 ## Atualização de operação e coleta (1.2)
 
 Android 1.2: o leitor abre por **Ler com câmera**, ocupa a tela inteira e fecha ao reconhecer o código ou cancelar. O formulário prioriza a coleta, com controles de base recolhidos e leitura habilitada após selecionar inventário. **Testar conexão com servidor** verifica a API antes do login. Na raiz, `npm start` publica API e dashboard na LAN. Consulte o [guia integrado](../docs/operacao-lan.md) para endereços, configuração, compilação e validação.
+
+## Ícone e atualização 1.2.1
+
+O APK 1.2.1 (versionCode 4) inclui a marca própria do Patrimônio Fatec no launcher, com ícone adaptativo e suporte aos ícones temáticos do Android 13+. A fonte vetorial e as cores estão em [Identidade visual](../assets/brand/README.md). Cópia de entrega: `entregaveis/patrimonio-fatec-1.2.1-debug.apk`, na raiz. Instale com `adb install -r` para manter os dados e operações locais.
+
+O Moto G52 conectado por USB recebeu essa atualização e confirmou acesso à API pelo endereço LAN preservado no login. O encaminhamento `adb reverse tcp:3000 tcp:3000` permite testar também `http://127.0.0.1:3000/api` enquanto o cabo estiver conectado, mas não troque o endereço usado por uma coleta com pendências: as filas são isoladas por servidor.

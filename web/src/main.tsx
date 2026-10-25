@@ -74,7 +74,13 @@ function App() {
     return (
       <main className="login">
         <div className="login-brand">
-          <span className="brand-icon">P</span>
+          <img
+            className="brand-icon"
+            src="/patrimonio-fatec.svg"
+            alt="Patrimônio Fatec"
+            width="42"
+            height="42"
+          />
           <p>FATEC · GESTÃO PATRIMONIAL</p>
           <h1>
             Cada ativo.
@@ -138,7 +144,13 @@ function App() {
     <div className="layout">
       <aside>
         <div className="brand">
-          <span className="brand-icon">P</span>
+          <img
+            className="brand-icon"
+            src="/patrimonio-fatec.svg"
+            alt="Patrimônio Fatec"
+            width="42"
+            height="42"
+          />
           <div>
             Patrimônio<small>FATEC · UNIDADE DE ENSINO</small>
           </div>
