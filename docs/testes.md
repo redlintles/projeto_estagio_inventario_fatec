@@ -50,3 +50,9 @@ Validação de desempenho com lotes não equivale a teste de carga em produção
 ## Referência de operação integrada — Android 1.2
 
 Consulte [Operação em LAN e coleta Android](operacao-lan.md) para a inicialização conjunta com `npm start`, acesso ao dashboard e à API pela LAN, teste de conexão, leitor em tela inteira, fila offline, compilação do APK e roteiro de aceitação em dispositivos reais.
+
+## Inventário guiado 1.3
+
+`backend/test/inventory-progress.test.ts` usa PostgreSQL exclusivo de teste e verifica abertura simultânea (apenas uma de seis passa), padrão seguro sem parâmetro, desativação/reativação, autoria, ausência idempotente sem modificar o bem, conclusão incompleta recusada e cancelamento que preserva itens e libera a sala. O teste HTTP confirma que somente administradores podem alterar a política e que valores inválidos são recusados.
+
+`InventoryProgressTest.kt` cobre denominador fixo, extras, ausências, tentativas arquivadas e precedência do resultado remoto. Os testes instrumentados de `CollectionIntegrationTest.kt` cobrem cancelamento durável/deduplicado e conclusão que aguarda fotos. Execute-os somente no emulador descartável com `fatecDisposable=true`, seguindo o README Android. Nunca execute esse runner no aparelho de coleta.

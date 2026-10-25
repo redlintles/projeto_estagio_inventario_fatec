@@ -62,3 +62,7 @@ Android 1.2: o leitor abre por **Ler com câmera**, ocupa a tela inteira e fecha
 O APK 1.2.1 (versionCode 4) inclui a marca própria do Patrimônio Fatec no launcher, com ícone adaptativo e suporte aos ícones temáticos do Android 13+. A fonte vetorial e as cores estão em [Identidade visual](../assets/brand/README.md). Cópia de entrega: `entregaveis/patrimonio-fatec-1.2.1-debug.apk`, na raiz. Instale com `adb install -r` para manter os dados e operações locais.
 
 O Moto G52 conectado por USB recebeu essa atualização e confirmou acesso à API pelo endereço LAN preservado no login. O encaminhamento `adb reverse tcp:3000 tcp:3000` permite testar também `http://127.0.0.1:3000/api` enquanto o cabo estiver conectado, mas não troque o endereço usado por uma coleta com pendências: as filas são isoladas por servidor.
+
+## Inventário guiado — versão 1.3
+
+A versão 1.3.0 (versionCode 5) mantém a lista de bens esperados e a sessão atual no aparelho, atualiza o progresso ao registrar resultados e aceita Não encontrei. Conclusão e cancelamento são comandos duráveis da fila; a sala só é liberada após confirmação do servidor. Veja o [guia de inventário Android](../docs/inventario-android.md).

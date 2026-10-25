@@ -56,3 +56,7 @@ Em Relatórios, escolha conteúdo e critérios, confira a prévia e exporte CSV,
 ## Referência de operação integrada — Android 1.2
 
 A coleta segue preparação online → leitura por botão em tela inteira ou digitação → revisão do bem → conferência/foto local → sincronização → revisão no portal. A leitura fecha o leitor, mas não confirma o inventário. Atualização e sincronização ficam recolhidas para priorizar a coleta. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.
+
+## Inventário guiado — versão 1.3
+
+A coleta agora apresenta a lista local esperada com patrimônio e descrição, barra de progresso e Não encontrei. Quando não restam bens, o splash anuncia a conclusão local; o app aguarda resultados e fotos antes de concluir no servidor. Cancelamento offline fica pendente e preserva resultados já aceitos. Veja o [guia de inventário Android](inventario-android.md).

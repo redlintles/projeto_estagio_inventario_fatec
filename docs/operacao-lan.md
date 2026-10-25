@@ -53,3 +53,7 @@ APK de testes: `mobile/app/build/outputs/apk/debug/app-debug.apk`. Cópia para e
 ## Aceitação em dispositivos reais
 
 Abra o portal de uma segunda máquina e teste a saúde da API pelo celular. Faça login, atualize a base, abra/feche o leitor, negue e conceda permissão, leia uma etiqueta real, confirme um bem e envie uma foto. Repita uma coleta sem Wi-Fi, reconecte, sincronize e confirme a ausência de duplicação no portal. Confira cancelamento, rotação, foco e legibilidade em diferentes tamanhos de tela. Sem um celular na LAN, compilação e testes automatizados não comprovam conectividade física nem qualidade óptica.
+
+## Inventário guiado — versão 1.3
+
+Atualize a API e as migrations antes de instalar o APK 1.3.0 com adb install -r. Sessões abertas reservam a sala por padrão; concluir ou cancelar offline exige sincronizar antes de liberar outra abertura. Veja o [guia de inventário Android](inventario-android.md).

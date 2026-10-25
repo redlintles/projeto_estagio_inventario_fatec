@@ -173,3 +173,16 @@ Uploads de fotos, imports/preview e relatórios compartilham duas operações si
 ## Referência de operação integrada — Android 1.2
 
 O Android usa `GET /health` sem token no teste pré-login; `POST /auth/login`, `GET /auth/me` e as consultas paginadas autenticadas preparam o cache. A base pode ser `http://IP_DO_PC:3000/api` no debug ou uma origem HTTPS em release. Leituras e fotos mantêm o contrato e os UUIDs de reenvio existentes. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.
+
+## Inventário guiado (Android 1.3)
+
+Detalhes e regras completas em [Inventário Android](inventario-android.md).
+
+- `POST /inventories` captura `expectedIds`, retorna `expectedAssets` (id, patrimônio e descrição) e `items: []`. A localização fica reservada até encerrar/cancelar. Com o parâmetro padrão, uma segunda abertura na mesma sala recebe HTTP 409.
+- `GET /inventories/:id` inclui `expectedIds`, `expectedAssets`, `items`, `missingIds` (sem resultado) e `notFoundIds` (ausências registradas).
+- `POST /inventories/:id/missing`: `{assetId,notFound:true,observedAt}`. Aceita apenas um bem do snapshot esperado. Grava `NOT_FOUND` sem alterar o bem.
+- `POST /sync`: o campo `input` aceita o payload antigo de conferência ou `{assetId,notFound:true,observedAt}`; mantém UUID estável, recibo e hash de payload para idempotência.
+- `POST /inventories/:id/complete`: corpo `{}`. Fecha somente quando todos os esperados têm um resultado; HTTP 409 se restarem bens. Reenvio de uma conclusão aceita retorna a mesma sessão fechada.
+- `POST /inventories/:id/cancel`: corpo `{}`. Define `CANCELLED` e `finishedAt`, preserva itens aceitos e libera a localização. Reenvio de cancelamento aceito é idempotente. Uma sessão fechada não pode ser cancelada, nem uma cancelada pode ser concluída.
+- Conferências, ausências, conclusão e cancelamento exigem `inventories.manage` e autoria da sessão, com exceção de administrador. Outras contas recebem HTTP 403.
+- `POST /settings`: `{name:"INVENTARIO_EXCLUSIVO_LOCAL",value:"true"|"false"}`. Somente administradores alteram esse parâmetro; desativar permite sessões independentes por localização. A proteção não depende do app e também cobre o portal.

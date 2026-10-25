@@ -54,3 +54,7 @@ SQLite contém `snapshots` e `operations`. Cada operação tem UUID, usuário, i
 ## Referência de operação integrada — Android 1.2
 
 A atualização 1.2 não exige migration adicional: preserva esquema do servidor, SQLite, IDs de reenvio e isolamento das filas por servidor/conta. O teste de conexão não troca o servidor persistido da sessão. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.
+
+## Inventário guiado — versão 1.3
+
+Inventários admitem OPEN, CLOSED e CANCELLED. Itens admitem CONFIRMED, DIVERGENCE e NOT_FOUND. expectedIds mantém o snapshot inicial, sem alterar o denominador por mudanças posteriores no cadastro. Nenhuma tabela Android é apagada: comandos COMPLETE/CANCEL usam a fila existente. Veja o [guia de inventário Android](inventario-android.md).

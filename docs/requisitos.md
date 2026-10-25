@@ -52,3 +52,7 @@ Um responsável deve conseguir importar uma planilha, organizar localizações, 
 ## Referência de operação integrada — Android 1.2
 
 O leitor deve abrir somente por botão, ocupar a tela inteira e fechar ao reconhecer ou cancelar. A coleta mantém digitação manual e revisão antes de gravar. A inicialização raiz deve aguardar prontidão e permitir acesso ao dashboard e à API na LAN. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.
+
+## Inventário guiado — versão 1.3
+
+A lista esperada deve diminuir após conferências e ausências locais, mantendo o total inicial. O progresso deve separar encontrados, não encontrados e restantes. A conclusão local deve orientar sincronização e distinguir pendências da confirmação remota. Cancelamento preserva histórico. Exclusividade por sala é padrão, configurável apenas por administrador com aviso. Veja o [guia de inventário Android](inventario-android.md).

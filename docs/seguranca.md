@@ -58,3 +58,7 @@ Escopo desta rodada: backend, portal, proxy de exemplo e documentação; nenhum 
 ## Referência de operação integrada — Android 1.2
 
 O modo LAN publica apenas API e portal em todas as interfaces; PostgreSQL e Mailpit não são expostos à LAN. A consulta de saúde no Android não envia token nem troca a sessão. Restrinja portas 3000/8080 à rede autorizada; a distribuição institucional usa release assinado e HTTPS. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.
+
+## Inventário guiado — versão 1.3
+
+Somente o responsável ou um administrador pode modificar uma sessão de inventário. A abertura usa trava transacional na localização para impedir corrida entre requisições. A API restringe a alteração de INVENTARIO_EXCLUSIVO_LOCAL a ADMIN, além da permissão geral de parâmetros. Veja o [guia de inventário Android](inventario-android.md).

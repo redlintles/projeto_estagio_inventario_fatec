@@ -156,3 +156,7 @@ O comando padrão `npm start` (ou `./iniciar.sh`) disponibiliza portal e API na 
 ## Identidade visual
 
 O projeto usa uma marca de etiqueta patrimonial com barras e selo de conferência, no verde e azul do próprio sistema. O ícone está no Android 1.2.1 e no favicon, login e cabeçalho do dashboard. Veja a [matriz vetorial e instruções de geração](assets/brand/README.md).
+
+## Inventário guiado — versão 1.3
+
+O Android 1.3 inclui lista local de bens esperados, progresso, ausências, conclusão sincronizada e cancelamento. A API impede sessões simultâneas na mesma sala por padrão; administradores podem alterar a política em Parâmetros. Veja o [guia de inventário Android](docs/inventario-android.md).

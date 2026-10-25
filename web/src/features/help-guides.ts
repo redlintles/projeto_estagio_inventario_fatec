@@ -44,6 +44,7 @@ export const helpGuides: {
       "Se tudo estiver correto, mantenha Conferência correta. Caso contrário, escolha o tipo de divergência e preencha Descrição encontrada e Observação.",
       "Clique em Registrar conferência e acompanhe os totais de conferidos e esperados ainda não conferidos.",
       "Se usar o aplicativo Android, faça login, atualize a base e prepare o inventário enquanto estiver online. Use Ler com câmera para abrir o leitor em tela inteira; após a leitura, revise e confirme o bem. Os controles de atualização ficam em Base e sincronização. As leituras offline ficam no aparelho; acompanhe a sincronização na aba Pendências.",
+      "No Android, o inventário mostra a lista local de bens esperados e uma barra de progresso. Confirme a leitura para remover um item; Não encontrei registra ausência sem baixa. O splash Inventário concluído indica conclusão local: aguarde a confirmação de sincronização para liberar a sala. Cancelar inventário preserva os resultados aceitos e libera a sala após sincronizar o pedido.",
       "Antes de Encerrar inventário, sincronize todos os aparelhos envolvidos e revise as pendências. Inventários encerrados recusam novas leituras, mesmo coletadas anteriormente.",
     ],
     tip: "Um bem não encontrado não recebe baixa automática. Não desinstale o aplicativo com pendências, pois isso remove os dados locais.",
@@ -118,6 +119,7 @@ export const helpGuides: {
     purpose:
       "Configure o prazo de disponibilização e os destinatários das notificações.",
     steps: [
+      "Inventário exclusivo por localização vem ativado e impede sessões simultâneas na mesma sala. Somente administradores podem alterar esse bloqueio. Desativar exige confirmar um aviso sobre trabalho duplicado, conflitos de versão e resultados incompatíveis; reativar bloqueia novas aberturas, mas não cancela sessões existentes.",
       "Em PRAZO_BAIXA_DIAS, informe o prazo em dias corridos e clique no botão Salvar correspondente.",
       "Em EMAIL_DISPONIBILIZACAO, informe quem deve receber os avisos de bens disponibilizados. Em EMAIL_CPS, informe os destinatários dos avisos relacionados ao prazo de baixa.",
       "Separe múltiplos e-mails por vírgula e salve cada parâmetro alterado.",

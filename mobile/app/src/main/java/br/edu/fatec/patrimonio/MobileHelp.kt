@@ -95,6 +95,14 @@ private val helpTopics =
         "Erro: confira a mensagem e revise no portal. Em Foto não enviada, a conferência já aceita não é reenviada; Tentar envio novamente retoma apenas a foto. Arquivar tentativa para revisão exige confirmação e preserva o histórico local.",
         "Se a sessão expirar, entre novamente com a mesma conta. Se faltar permissão, peça ao administrador para liberar a tarefa e use Tentar envio novamente. As filas são separadas por conta e endereço do servidor; não altere o endereço enquanto houver pendências sem orientação.",
       ),
+    "Lista, progresso e conclusão do inventário" to
+      listOf(
+        "Ao iniciar, o app guarda a lista de bens Incorporados e Ativos esperados na sala, com patrimônio e descrição. O total é o snapshot inicial e não muda durante a coleta. A lista diminui depois de confirmar o resultado do bem.",
+        "Se não encontrar um bem esperado, toque em Não encontrei ao lado dele e confirme. O registro de ausência funciona offline e não dá baixa nem muda a localização oficial. A barra separa encontrados, não encontrados e quantos ainda faltam registrar.",
+        "Quando todos os bens esperados têm resultado, aparece Inventário concluído. Isso indica conclusão da coleta local. Toque em Sincronizar e acompanhar e aguarde Inventário concluído e sincronizado. Fotos com erro ou conflitos impedem a conclusão no servidor: revise em Pendências.",
+        "Cancelar inventário pede confirmação e guarda um pedido na fila. O servidor preserva os resultados já aceitos; leituras locais ainda não enviadas serão arquivadas. Sem conexão, a sala só é liberada depois de sincronizar o cancelamento.",
+        "Por padrão o servidor bloqueia outra sessão na mesma sala. Retome sua sessão aberta ou aguarde o responsável concluir/cancelar e sincronizar. Somente o responsável ou um administrador pode modificar a sessão. O administrador pode desativar a proteção em Parâmetros, assumindo os riscos de trabalho duplicado e conflitos.",
+      ),
     "Trabalhar sem conexão" to
       listOf(
         "Faça login, atualize a base e prepare ou selecione um inventário enquanto houver conexão. A preparação de inventários exige acesso ao servidor; as operações administrativas ficam no portal.",

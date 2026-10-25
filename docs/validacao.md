@@ -52,3 +52,14 @@ Android 1.2.1 (versionCode 4) compilado com `:app:assembleDebug :app:lintDebug`,
 APK instalado com `adb install -r` em Moto G52 com Android 13; versão instalada confirmada por `dumpsys package`, app iniciado e dados preservados pela atualização. O botão Testar conexão no próprio aparelho confirmou **Servidor acessível** no endereço LAN já configurado. O encaminhamento USB da porta 3000 também foi preparado, sem alterar o servidor da sessão. Login, coleta e câmera física não foram exercitados nesta instalação.
 
 Build backend/web, formatação e disponibilidade HTTP da marca e do portal aprovados. Serviços Docker atualizados e saudáveis. APK: `entregaveis/patrimonio-fatec-1.2.1-debug.apk`; SHA-256: `542ae95ab2b5a2983adbfaa4b93702c7111f4d7b4397aeb113eea2eaeec85b86`.
+
+## Inventário guiado 1.3 — 25/10/2026
+
+- PostgreSQL descartável exclusivo: 71 testes backend e 5 web aprovados. Foram incluídos testes de concorrência real, política configurável, autorização do parâmetro, ausências idempotentes, conclusão e cancelamento.
+- Android: 11 testes unitários aprovados, build debug e lint sem erros. Nove testes instrumentados aprovados em AVD Android 15 iniciado com `-read-only -no-snapshot`; incluem cancelamento persistente/deduplicado e conclusão bloqueada por foto pendente, sem reenviar a leitura aceita. Nenhum teste destrutivo foi executado no Moto G52.
+- Conferência visual com API fictícia no emulador: lista local com dois bens esperados, números iniciais, diálogo de cancelamento, diminuição da lista após duas ausências, splash de conclusão e confirmação de dados sincronizados. Esses registros não foram enviados à base de uso.
+- Playwright no dashboard: proteção ativada por padrão, aviso modal de consequências ao tentar desativar, cancelamento mantém o valor true no servidor e nenhum erro JavaScript. A política de uso permaneceu ativada.
+- `npm start`: migração aplicada e serviços saudáveis, com dados, contas e sessões anteriores preservados. Atualização Android 1.3.0, versionCode 5, instalada no Moto G52 via `adb install -r` e aberta. A versão foi confirmada por `dumpsys package`; coletas reais do usuário não foram alteradas para teste.
+- Build TypeScript/Vite, formatação e verificação de whitespace aprovados. Veja [Inventário Android](inventario-android.md) para os limites da conclusão local e os passos de sincronização/cancelamento.
+
+APK final de testes: `entregaveis/patrimonio-fatec-1.3.0-debug.apk`. SHA-256: `0b2c1be54f08202c30e560e5877c244b9cf33fa82bfe8f342fa2faf3199725ef`.
