@@ -43,7 +43,7 @@ export const helpGuides: {
       "No inventário aberto, informe o número do Patrimônio. Compare o objeto e a etiqueta com o cadastro.",
       "Se tudo estiver correto, mantenha Conferência correta. Caso contrário, escolha o tipo de divergência e preencha Descrição encontrada e Observação.",
       "Clique em Registrar conferência e acompanhe os totais de conferidos e esperados ainda não conferidos.",
-      "Se usar o aplicativo Android, faça login, atualize a base e prepare o inventário enquanto estiver online. As leituras offline ficam no aparelho; acompanhe a sincronização na aba Pendências.",
+      "Se usar o aplicativo Android, faça login, atualize a base e prepare o inventário enquanto estiver online. Use Ler com câmera para abrir o leitor em tela inteira; após a leitura, revise e confirme o bem. Os controles de atualização ficam em Base e sincronização. As leituras offline ficam no aparelho; acompanhe a sincronização na aba Pendências.",
       "Antes de Encerrar inventário, sincronize todos os aparelhos envolvidos e revise as pendências. Inventários encerrados recusam novas leituras, mesmo coletadas anteriormente.",
     ],
     tip: "Um bem não encontrado não recebe baixa automática. Não desinstale o aplicativo com pendências, pois isso remove os dados locais.",

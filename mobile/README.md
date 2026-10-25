@@ -23,7 +23,7 @@ Para demonstrar a conferência, importe ativos no portal, cadastre uma localiza�
 
 ## Demonstração pela rede Wi-Fi
 
-Na raiz, execute `npm run demo:lan` e informe no app debug `http://IP_DO_PC:3000/api`. O modo padrão `npm run demo` publica a API apenas no próprio computador. `10.0.2.2` é destinado ao emulador e não identifica o PC para um celular físico. A demonstração pela rede não exige o cabo USB.
+Na raiz, execute `npm start` e informe no app debug `http://IP_DO_PC:3000/api`. O modo padrão `npm run demo` publica a API apenas no próprio computador. `10.0.2.2` é destinado ao emulador e não identifica o PC para um celular físico. A demonstração pela rede não exige o cabo USB.
 
 ## Organização das telas
 
@@ -32,7 +32,7 @@ A navegação inferior mantém Inventário, Identificar, Pendências e Ajuda ace
 
 ## Papel do aplicativo e compatibilidade atual
 
-O Android 1.1 é uma fonte de coleta: identificação por etiqueta/patrimônio, conferência física, condição, divergências e fotos, com fila offline. A aba Identificar mostra apenas o contexto do bem e permite salvar uma foto para envio sem alterar seu estado. Importação, unidades/localizações em lote, desfazer/refazer, relatórios, gestão de acessos e movimentações administrativas são feitos no portal.
+O Android 1.2 é uma fonte de coleta: identificação por etiqueta/patrimônio, conferência física, condição, divergências e fotos, com fila offline. A aba Identificar mostra apenas o contexto do bem e permite salvar uma foto para envio sem alterar seu estado. Importação, unidades/localizações em lote, desfazer/refazer, relatórios, gestão de acessos e movimentações administrativas são feitos no portal.
 
 As tarefas são verificadas pelas permissões individuais retornadas no login e em Atualizar base. A conta de coleta normalmente precisa de `assets.view`, `inventories.view`, `inventories.manage` e `photos.upload`; as consultas necessárias são incluídas no portal. `Incorporado` e `Ativo` podem ser conferidos. Vínculos de unidade e localização são atualizados com a base; leituras salvas preservam a versão original e divergências não alteram o vínculo oficial automaticamente.
 
@@ -52,3 +52,7 @@ Os testes Android apagam **somente o banco do aplicativo de teste no emulador au
 4. Finalize a API fictícia e o AVD após o teste.
 
 Os testes verificam migração sem apagar fila/fotos, isolamento de servidor/conta, duplicidade local, foto avulsa, reenvio apenas da foto após 403/401, continuidade da fila e orientação/remoção de GPS da imagem. Câmera, foco e leitura de etiquetas ainda devem ser homologados nos aparelhos reais; um emulador não comprova a qualidade óptica de um celular.
+
+## Atualização de operação e coleta (1.2)
+
+Android 1.2: o leitor abre por **Ler com câmera**, ocupa a tela inteira e fecha ao reconhecer o código ou cancelar. O formulário prioriza a coleta, com controles de base recolhidos e leitura habilitada após selecionar inventário. **Testar conexão com servidor** verifica a API antes do login. Na raiz, `npm start` publica API e dashboard na LAN. Consulte o [guia integrado](../docs/operacao-lan.md) para endereços, configuração, compilação e validação.

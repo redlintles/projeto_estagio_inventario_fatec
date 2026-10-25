@@ -1,6 +1,6 @@
 # Revisão Android — coleta de dados
 
-Versão 1.1.0 (versionCode 2). O portal continua responsável pela gestão; o Android identifica bens, registra conferências, condição, divergências e fotos e mantém a fila offline.
+Revisão original: versão 1.1.0 (versionCode 2). A atualização 1.2.0 (versionCode 3) descrita no guia integrado acrescenta leitor em tela inteira e teste de conexão; os resultados instrumentados abaixo pertencem à revisão original. O portal continua responsável pela gestão; o Android identifica bens, registra conferências, condição, divergências e fotos e mantém a fila offline.
 
 | Mudança do projeto                       | Tratamento no Android                                                                                                                                                                                |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -29,3 +29,7 @@ Atualizar o APK com `adb install -r` preserva os dados locais. Antes de atualiza
 A identificação por câmera em etiquetas físicas, foco, iluminação, permissões do fabricante e restrições de bateria precisam ser homologados nos aparelhos reais. Nenhum celular físico estava conectado por ADB nesta revisão. Android 8 é o mínimo declarado; a execução instrumentada foi em Android 15. O APK debug permite HTTP para demonstração; a distribuição institucional exige assinatura e HTTPS, conforme a documentação de implantação.
 
 Testes reproduzíveis e API fictícia: `mobile/README.md` e `scripts/mobile-fixture.mjs`.
+
+## Referência de operação integrada — Android 1.2
+
+Consulte [Operação em LAN e coleta Android](operacao-lan.md) para a inicialização conjunta com `npm start`, acesso ao dashboard e à API pela LAN, teste de conexão, leitor em tela inteira, fila offline, compilação do APK e roteiro de aceitação em dispositivos reais.

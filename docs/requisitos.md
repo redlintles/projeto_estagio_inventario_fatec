@@ -48,3 +48,7 @@ A partir de `D`, reserva e transporte podem levar a `T` Transferido. Reserva nã
 ## Critério de aceitação
 
 Um responsável deve conseguir importar uma planilha, organizar localizações, preparar um inventário online, conferir uma sala offline, sincronizar e tratar divergências, disponibilizar ativos com foto, reservar e transferir ou aguardar o prazo e registrar baixa. Os eventos devem permitir identificar autor, instante e alteração.
+
+## Referência de operação integrada — Android 1.2
+
+O leitor deve abrir somente por botão, ocupar a tela inteira e fechar ao reconhecer ou cancelar. A coleta mantém digitação manual e revisão antes de gravar. A inicialização raiz deve aguardar prontidão e permitir acesso ao dashboard e à API na LAN. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

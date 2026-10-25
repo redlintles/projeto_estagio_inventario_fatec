@@ -61,3 +61,7 @@ Antes de integrar login institucional ou armazenamento cloud, mantenha os contra
 ## Limites que precisam permanecer visíveis
 
 Relatórios recusam mais de 20.000 bens candidatos ou registros e orientam filtros; não aumente o limite sem medir memória e tempo no servidor. Históricos são consultados em blocos de 500 IDs com datas filtradas no PostgreSQL. Operações de arquivo compartilham dois lugares por processo em `resource-limit.ts`; o excesso retorna 503, sem fila ilimitada. Cálculos de senha têm quatro lugares. As restrições são locais ao processo; várias instâncias exigem limites também no proxy. SMTP tem timeout para não deixar conexões e transações presas indefinidamente.
+
+## Referência de operação integrada — Android 1.2
+
+Use `npm start` para recompilar e iniciar a instalação integrada, e `npm stop` para parar preservando volumes. Consulte os logs se algum healthcheck exceder 180 segundos. Reserve um IP no DHCP e atualize o APK com `adb install -r`, preservando pendências. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

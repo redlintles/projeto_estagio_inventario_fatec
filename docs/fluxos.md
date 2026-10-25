@@ -52,3 +52,7 @@ Em Ativos, combine filtros (incluindo Sem unidade vinculada e Sem localização)
 Histórico de alterações em lote preserva o lote original e suas versões. Desfazer restaura os valores anteriores; Refazer reaplica o destino original aos mesmos bens. Cada tarefa exige a permissão correspondente. Qualquer alteração posterior em um dos bens bloqueia todo o desfazer/refazer; não há aplicação parcial. O destino precisa continuar ativo para refazer. O processamento ocorre em blocos de 500 dentro de uma transação.
 
 Em Relatórios, escolha conteúdo e critérios, confira a prévia e exporte CSV, XLSX ou ODS. Datas de históricos seguem São Paulo; nos relatórios de ativos, o período usa incorporação. Referências usam patrimônio, nomes e descrições. A exportação consulta novamente os dados; não é um retrato congelado da prévia. O limite é 20.000 bens candidatos ou registros por solicitação, com recusa explícita em vez de arquivo parcial. Divida a consulta usando filtros quando necessário.
+
+## Referência de operação integrada — Android 1.2
+
+A coleta segue preparação online → leitura por botão em tela inteira ou digitação → revisão do bem → conferência/foto local → sincronização → revisão no portal. A leitura fecha o leitor, mas não confirma o inventário. Atualização e sincronização ficam recolhidas para priorizar a coleta. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

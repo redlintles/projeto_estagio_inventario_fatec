@@ -46,3 +46,7 @@ Homologar formato da planilha real e etiquetas; decidir domínio/rede e HTTPS; c
 - O roteiro `scripts/web-smoke.mjs` inclui Ajuda, prévia de relatório e download XLSX, além de login, navegação, cadastro, histórico e viewport estreito. Use somente instalação descartável, pois o roteiro grava uma localização.
 
 Validação de desempenho com lotes não equivale a teste de carga em produção. A instituição deve medir simultaneidade, quantidade de fotos, armazenamento e tempo de resposta na máquina definitiva.
+
+## Referência de operação integrada — Android 1.2
+
+Consulte [Operação em LAN e coleta Android](operacao-lan.md) para a inicialização conjunta com `npm start`, acesso ao dashboard e à API pela LAN, teste de conexão, leitor em tela inteira, fila offline, compilação do APK e roteiro de aceitação em dispositivos reais.

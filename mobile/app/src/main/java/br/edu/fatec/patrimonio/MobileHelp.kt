@@ -53,8 +53,8 @@ private val helpTopics =
   listOf(
     "Começar e conectar" to
       listOf(
-        "Entre com a conta fornecida pelo administrador. As tarefas dependem das permissões configuradas no portal, e não apenas do nome do perfil. Para coletar, solicite Consultar ativos, Realizar inventários e, quando necessário, Adicionar fotos.",
-        "No celular físico, informe a API do servidor da instituição. Na demo em rede, use http://IP_DO_PC:3000/api e inicie o PC com npm run demo:lan. 10.0.2.2 é somente para emuladores.",
+        "Antes de entrar, use Testar conexão com servidor para verificar o endereço da API. Em Base e sincronização, expanda Atualizar base e sincronizar para acessar os controles. Entre com a conta fornecida pelo administrador. As tarefas dependem das permissões configuradas no portal, e não apenas do nome do perfil. Para coletar, solicite Consultar ativos, Realizar inventários e, quando necessário, Adicionar fotos.",
+        "No celular físico, informe a API do servidor da instituição. Na demo em rede, use http://IP_DO_PC:3000/api e inicie o PC com npm start (ou ./iniciar.sh). 10.0.2.2 é somente para emuladores.",
         "Na demo por USB, com encaminhamento configurado, use http://127.0.0.1:3000/api e mantenha o cabo conectado. A versão de produção exige HTTPS.",
       ),
     "Base e sincronização" to
@@ -74,7 +74,7 @@ private val helpTopics =
       ),
     "Câmera e busca manual" to
       listOf(
-        "Autorize a câmera quando solicitado. Enquadre o código inteiro, mantenha o aparelho firme e evite reflexos ou sombras na etiqueta.",
+        "Toque em Ler com câmera para abrir o leitor em tela inteira. Após reconhecer o código, a câmera fecha automaticamente para você revisar o bem; Fechar câmera ou Voltar retorna à digitação sem registrar conferência. Autorize a câmera quando solicitado. Enquadre o código inteiro, mantenha o aparelho firme e evite reflexos ou sombras na etiqueta.",
         "Se aparecer Código lido seguido de Nenhum ativo encontrado, a leitura ocorreu, mas o número não está na base local. Confira a etiqueta e atualize a base com conexão.",
         "Código único pode se repetir na planilha. Quando houver mais de um resultado, o aplicativo pede a escolha pelo patrimônio. Se houver muitos, digite o NroPatrimonio completo. Nunca escolha apenas pela aparência do código.",
         "Uma embalagem de alimento pode ter um código reconhecível, mas não corresponde necessariamente a um patrimônio cadastrado. Se não conseguir ler, digite o número em Buscar.",

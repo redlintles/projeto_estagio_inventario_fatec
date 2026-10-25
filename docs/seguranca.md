@@ -54,3 +54,7 @@ Escopo desta rodada: backend, portal, proxy de exemplo e documentação; nenhum 
 - A limpeza dos contadores de login é periódica e respeita a expiração individual; não percorre todas as contas em toda requisição normal.
 
 `npm audit` e `npm audit --omit=dev` não retornaram alertas conhecidos nesta data. Isso não certifica a aplicação: HTTPS, backups protegidos, restrição da rede, destinatários aprovados de e-mail e homologação da máquina continuam necessários. Referências: [armazenamento de senhas OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html) e [proxy Nginx](https://nginx.org/en/docs/http/ngx_http_proxy_module.html).
+
+## Referência de operação integrada — Android 1.2
+
+O modo LAN publica apenas API e portal em todas as interfaces; PostgreSQL e Mailpit não são expostos à LAN. A consulta de saúde no Android não envia token nem troca a sessão. Restrinja portas 3000/8080 à rede autorizada; a distribuição institucional usa release assinado e HTTPS. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

@@ -169,3 +169,7 @@ Aplicar, desfazer e refazer usam bloqueio ordenado dos ativos, validação conju
 Relatórios (prévia e download) aceitam no máximo 20.000 bens candidatos ou registros por solicitação. A seleção de bens considera patrimônio, descrição, grupo, unidade, localização e status; o período de incorporação também é aplicado antes do limite nos relatórios de ativos. Em históricos, o limite de bens candidatos é anterior ao período dos eventos. Excesso retorna 400 com orientação para filtros, sem arquivo parcial. A prévia mostra até 30 linhas, mas valida o limite do conjunto completo. Históricos aplicam o período no PostgreSQL no fuso America/Sao_Paulo.
 
 Uploads de fotos, imports/preview e relatórios compartilham duas operações simultâneas por processo. Excesso retorna 503 e cabeçalho Retry-After: 15. O cliente deve aguardar e solicitar novamente; o servidor não acumula fila de uploads. Cálculos de senha também têm capacidade limitada e podem retornar 503. JSON malformado retorna 400; corpo excessivo, 413. Os contratos de autenticação e o protocolo offline permanecem os mesmos.
+
+## Referência de operação integrada — Android 1.2
+
+O Android usa `GET /health` sem token no teste pré-login; `POST /auth/login`, `GET /auth/me` e as consultas paginadas autenticadas preparam o cache. A base pode ser `http://IP_DO_PC:3000/api` no debug ou uma origem HTTPS em release. Leituras e fotos mantêm o contrato e os UUIDs de reenvio existentes. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

@@ -39,6 +39,27 @@ export function Help({ state }: { state: AppState }) {
           </li>
         </ol>
       </section>
+      <section className="panel" aria-labelledby="help-lan">
+        <h2 id="help-lan">Coleta Android e acesso pela rede local</h2>
+        <p>
+          Na máquina servidora, execute npm start ou ./iniciar.sh. Aguarde a
+          confirmação de prontidão e use o endereço do portal exibido (porta
+          8080) nos outros computadores da mesma LAN.
+        </p>
+        <p>
+          No Android 1.2, configure a API exibida (porta 3000, caminho /api),
+          toque em Testar conexão com servidor e entre com sua conta. Atualize a
+          base, selecione a sala e um inventário aberto. Ler com câmera abre o
+          leitor em tela inteira; a leitura retorna ao formulário para revisão e
+          confirmação. Também é possível digitar o patrimônio.
+        </p>
+        <p>
+          Os controles de atualização e envio ficam em Base e sincronização.
+          Conferências e fotos ficam salvas no aparelho até o envio; confira
+          Pendências e atualize o inventário no portal antes de encerrá-lo. Para
+          uso institucional com dados reais, siga a implantação HTTPS.
+        </p>
+      </section>
       <section className="panel" aria-labelledby="help-access">
         <h2 id="help-access">Seu perfil e as permissões</h2>
         <p>

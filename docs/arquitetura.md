@@ -61,3 +61,7 @@ Notificações têm entrega pelo menos uma vez. Há uma janela inevitável entre
 A gestão de contas fica em `auth/users.service.ts`, com alteração de acesso e revogação das sessões na mesma transação. `auth/passwords.ts` concentra o formato versionado de hashes e o cálculo assíncrono limitado. Os contratos de rotas e validação continuam em `controller.ts`.
 
 Relatórios separam consulta e apresentação: `reports.ts` monta os dados legíveis, `report-query.ts` limita e consulta históricos por blocos, `report-format.ts` gera CSV/XLSX/ODS e formata datas/valores. Textos da ajuda ficam em `web/src/features/help-guides.ts`; `Help.tsx` monta a página e navegação. O interceptor `resource-limit.ts` protege a capacidade compartilhada de arquivos por processo.
+
+## Referência de operação integrada — Android 1.2
+
+A inicialização integrada aguarda os healthchecks do PostgreSQL, API e proxy antes de concluir. O dashboard acessa a API por `/api` na mesma origem; Android conecta diretamente. O leitor Compose é um diálogo de tela inteira, instanciado somente ao tocar no botão e descartado ao ler/cancelar; o efeito libera a câmera. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

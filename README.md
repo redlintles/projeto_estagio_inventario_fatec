@@ -28,7 +28,7 @@ A hospedagem será em uma máquina interna da Fatec, na rede local compartilhada
 ./iniciar.sh
 ```
 
-O script inicia banco, backend e portal, gera a configuração local e aplica as migrations. Requer Node.js 24 e Docker com Compose iniciado; não exige editar env. Portal em `http://localhost:8080`. Credenciais em `.demo/.env`, sem impressão da senha no terminal. Use `./iniciar.sh --rede` para uma demonstração com celulares na mesma rede e `./iniciar.sh --parar` para parar preservando os dados. O modo de rede usa HTTP e é destinado a testes; dados reais exigem a implantação HTTPS descrita em `docs/deploy.md`.
+O script inicia banco, backend e portal, gera a configuração local e aplica as migrations. Requer Node.js 24 e Docker com Compose iniciado; não exige editar env. Portal em `http://localhost:8080` e `http://IP_DO_PC:8080`. Credenciais em `.demo/.env`, sem impressão da senha no terminal. O modo padrão já permite acesso de computadores e celulares na mesma rede; `./iniciar.sh --rede` é um alias e `./iniciar.sh --parar` para parar preservando os dados. O modo de rede usa HTTP e é destinado a testes; dados reais exigem a implantação HTTPS descrita em `docs/deploy.md`.
 
 A importação do modelo institucional, estados e cálculos estão em [Importação](docs/importacao.md). O escopo da auditoria e os requisitos restantes estão em [Segurança](docs/seguranca.md).
 
@@ -148,3 +148,7 @@ TEST_DATABASE_URL=postgresql://usuario:senha@localhost:5432/patrimonio_test npm 
 - [Registro de validação](docs/validacao.md)
 
 Os briefings originais permanecem na raiz. As decisões confirmadas pelo responsável no chat prevalecem sobre sugestões do agregado de IA.
+
+## Atualização de operação e coleta (1.2)
+
+O comando padrão `npm start` (ou `./iniciar.sh`) disponibiliza portal e API na LAN e aguarda prontidão. Para acesso somente neste PC, use `npm run demo` ou `./iniciar.sh --local`. Android 1.2 inclui leitor de barras em tela inteira acionado por botão e teste de conexão no login. Consulte o [guia integrado](docs/operacao-lan.md) para endereços, configuração, compilação e validação.

@@ -8,7 +8,7 @@ Reserve um endereço estável para a máquina, por reserva DHCP ou configuraçã
 
 A ausência de VLANs não impede a integração, mas também não comprova acesso entre Wi-Fi e servidor: valide isolamento de clientes nos pontos de acesso e o firewall da máquina. Exponha o proxy HTTPS aos clientes autorizados; mantenha PostgreSQL e armazenamento de fotos sem acesso direto pela rede. Configure WEB_ORIGIN com a origem real do portal. A máquina precisa permanecer ligada durante o acesso e a sincronização.
 
-O comando `npm run demo` atende à apresentação local e publica portal e API somente em `127.0.0.1`. Para uma apresentação com celulares na mesma rede, `npm run demo:lan` publica a API por HTTP no IP do computador e mantém o banco e as credenciais. Esse modo é exclusivo da demonstração com APK debug e não configura a implantação institucional. Para os aparelhos operacionais, distribua APK release assinado e valide a atualização sem apagar pendências locais. Faça a conferência offline após preparar a base e o inventário online; ao reconectar, sincronize antes de encerrar a sessão de inventário.
+O comando `npm run demo` atende à apresentação local e publica portal e API somente em `127.0.0.1`. Para uma apresentação com celulares na mesma rede, `npm start` (ou `./iniciar.sh`, `npm run demo:lan`) publica dashboard na porta 8080 e API na porta 3000 por HTTP no IP do computador e mantém o banco e as credenciais. Esse modo é exclusivo da demonstração com APK debug e não configura a implantação institucional. Para os aparelhos operacionais, distribua APK release assinado e valide a atualização sem apagar pendências locais. Faça a conferência offline após preparar a base e o inventário online; ao reconectar, sincronize antes de encerrar a sessão de inventário.
 
 ## Sem contêiner
 
@@ -80,3 +80,7 @@ A versão atual admite até duas operações de arquivo simultâneas por process
 Senhas antigas são atualizadas automaticamente para o hash scrypt-v2 no login. Versões anteriores do backend não reconhecem esse formato: antes de voltar uma versão, planeje uma correção compatível. Não restaure um banco antigo sobre dados novos para contornar incompatibilidade. Nenhuma migration de dados patrimoniais é necessária nesta rodada.
 
 O pool do PostgreSQL usa até 10 conexões por processo, timeout inicial de 10 segundos e limite de 60 segundos por consulta/transação ociosa. Esses limites são definidos em `backend/src/data-source.ts`. O limite de consulta não é o tempo total de um lote: cada comando é limitado separadamente. SMTP usa 10 segundos para conexão/saudação e 30 segundos de inatividade no socket. Ajustes exigem observar consumo e concorrência na máquina definitiva.
+
+## Referência de operação integrada — Android 1.2
+
+Consulte [Operação em LAN e coleta Android](operacao-lan.md) para a inicialização conjunta com `npm start`, acesso ao dashboard e à API pela LAN, teste de conexão, leitor em tela inteira, fila offline, compilação do APK e roteiro de aceitação em dispositivos reais.

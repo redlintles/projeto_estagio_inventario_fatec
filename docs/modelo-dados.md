@@ -50,3 +50,7 @@ SQLite contém `snapshots` e `operations`. Cada operação tem UUID, usuário, i
 ## Histórico de alterações em lote
 
 `asset_batches` preserva campo alterado, destino, responsável, estado e revisão do lote; a coluna JSON `asset_batches.items` guarda valores anteriores e versões de cada ativo. `asset_batch_events` registra aplicações, reversões e reaplicações. Esses registros complementam as movimentações individuais, sem substituí-las. Aplicar, desfazer e refazer alteram ativos e histórico na mesma transação. Nenhuma dessas operações muda o UUID nem a coluna de unidade original.
+
+## Referência de operação integrada — Android 1.2
+
+A atualização 1.2 não exige migration adicional: preserva esquema do servidor, SQLite, IDs de reenvio e isolamento das filas por servidor/conta. O teste de conexão não troca o servidor persistido da sessão. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

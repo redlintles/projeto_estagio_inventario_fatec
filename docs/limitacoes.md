@@ -19,3 +19,7 @@ Testes unitários, integração, compilação e lint não comprovam a câmera re
 ## Capacidade e operações simultâneas
 
 Duas operações de arquivo (upload de foto, análise de planilha ou geração/prévia de relatório) podem executar simultaneamente por processo. O excesso recebe 503 e Retry-After de 15 segundos; aguarde e repita. Até quatro cálculos assíncronos de senha podem executar em paralelo; o excesso também recebe 503. Esses limites não substituem monitoramento de CPU, memória, disco e conexões nem proteção no proxy. O parser de Excel e a geração das planilhas ainda usam processamento síncrono: bases maiores exigirão trabalhos em segundo plano ou streaming, com testes de carga no hardware institucional.
+
+## Referência de operação integrada — Android 1.2
+
+HTTP em LAN e APK debug destinam-se à validação. A assinatura release e HTTPS institucional continuam necessários. Nenhum aparelho físico estava conectado nesta atualização; foco, leitura de etiquetas, rotação, permissão e comunicação entre dispositivos precisam da aceitação local. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.

@@ -45,3 +45,7 @@ A unidade cadastrada também pode ser vinculada sem reimportar a planilha: em At
 Para abranger todos os resultados, use Selecionar tudo com os filtros atuais. Sem unidade vinculada e Sem localização permitem localizar cadastros incompletos. A seleção global abrange todas as páginas; a seleção manual continua limitada a 500. A confirmação informa a quantidade que realmente mudará. Cada lote fica no Histórico de alterações em lote e pode ser desfeito enquanto nenhum de seus ativos tiver alterações posteriores. A reversão restaura inclusive valores ausentes, registra auditoria e mantém a operação original no histórico.
 
 Depois de desfazer um lote, Refazer lote reaplica o destino original aos mesmos bens, com permissão própria e nova versão no histórico. Alteração posterior em qualquer bem bloqueia toda a operação; destino inativo impede refazer. Ver versões do lote identifica data, responsável e quantidade de cada aplicação, reversão ou reaplicação. O modal de confirmação mostra a quantidade antes de executar.
+
+## Referência de operação integrada — Android 1.2
+
+Após importar ou alterar vínculos em lote no portal, atualize a base Android antes da coleta. O leitor em tela inteira identifica o mesmo patrimônio/código importado; códigos compartilhados continuam exigindo revisão pelo patrimônio. Consulte o [guia integrado](operacao-lan.md) para os procedimentos.
