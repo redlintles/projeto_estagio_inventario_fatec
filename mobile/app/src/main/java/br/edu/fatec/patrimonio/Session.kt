@@ -96,18 +96,23 @@ class Session(context: Context) {
   var apiUrl: String
     get() = prefs.getString("apiUrl", "http://10.0.2.2:3000/api")!!
     set(value) {
-      val parsed = java.net.URI(value.trim())
-      require(
-        parsed.host != null &&
-          parsed.userInfo == null &&
-          parsed.query == null &&
-          parsed.fragment == null
-      ) {
-        "Endereço da API inválido."
-      }
-      require(parsed.scheme == "https" || (BuildConfig.DEBUG && parsed.scheme == "http")) {
-        "Use HTTPS em produção."
-      }
-      prefs.edit().putString("apiUrl", value.trim().trimEnd('/')).apply()
+      prefs.edit().putString("apiUrl", normalizeApiUrl(value)).apply()
     }
+}
+
+/** Valida sem trocar o servidor da conta ou da fila durante um teste de conexão. */
+fun normalizeApiUrl(value: String): String {
+  val parsed = java.net.URI(value.trim())
+  require(
+    parsed.host != null &&
+      parsed.userInfo == null &&
+      parsed.query == null &&
+      parsed.fragment == null
+  ) {
+    "Endereço da API inválido. Use http://IP_DO_PC:3000/api nos testes em LAN."
+  }
+  require(parsed.scheme == "https" || (BuildConfig.DEBUG && parsed.scheme == "http")) {
+    "Use HTTPS em produção."
+  }
+  return value.trim().trimEnd('/')
 }

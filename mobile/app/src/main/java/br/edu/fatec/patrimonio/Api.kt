@@ -15,8 +15,8 @@ class ApiFailure(val status: Int, val response: String) :
     }
   )
 
-class Api(session: Session) {
-  private val baseUrl = session.apiUrl
+class Api(session: Session, serverUrl: String = session.apiUrl) {
+  private val baseUrl = normalizeApiUrl(serverUrl)
   private val token = session.token
 
   fun request(path: String, body: JSONObject? = null): String {
@@ -25,7 +25,8 @@ class Api(session: Session) {
       conn.instanceFollowRedirects = false
       conn.connectTimeout = 15000
       conn.readTimeout = 20000
-      conn.setRequestProperty("Authorization", "Bearer ${token}")
+      if (path != "health" && token.isNotBlank())
+        conn.setRequestProperty("Authorization", "Bearer ${token}")
       if (body != null) {
         conn.requestMethod = "POST"
         conn.doOutput = true

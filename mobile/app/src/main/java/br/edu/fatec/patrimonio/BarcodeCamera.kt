@@ -7,10 +7,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -39,7 +42,14 @@ fun BarcodeCamera(modifier: Modifier = Modifier, onBarcode: (String) -> Unit) {
     }
   val callback by rememberUpdatedState(onBarcode)
   if (!permitted) {
-    Button(onClick = { permission.launch(Manifest.permission.CAMERA) }) { Text("Permitir câmera") }
+    Box(modifier, contentAlignment = Alignment.Center) {
+      Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Permita o acesso à câmera para ler a etiqueta.")
+        Button(onClick = { permission.launch(Manifest.permission.CAMERA) }) {
+          Text("Permitir câmera")
+        }
+      }
+    }
     return
   }
   val preview = remember { PreviewView(context) }
@@ -64,8 +74,7 @@ fun BarcodeCamera(modifier: Modifier = Modifier, onBarcode: (String) -> Unit) {
           .build()
       )
     val processing = AtomicBoolean(false)
-    var lastValue = ""
-    var lastTime = 0L
+    val delivered = AtomicBoolean(false)
     var provider: ProcessCameraProvider? = null
     var disposed = false
     val future = ProcessCameraProvider.getInstance(context)
@@ -88,12 +97,7 @@ fun BarcodeCamera(modifier: Modifier = Modifier, onBarcode: (String) -> Unit) {
                   .process(InputImage.fromMediaImage(media, image.imageInfo.rotationDegrees))
                   .addOnSuccessListener { codes ->
                     val value = codes.firstOrNull()?.rawValue
-                    val now = System.currentTimeMillis()
-                    if (
-                      !disposed && value != null && (value != lastValue || now - lastTime > 2500)
-                    ) {
-                      lastValue = value
-                      lastTime = now
+                    if (!disposed && value != null && delivered.compareAndSet(false, true)) {
                       callback(value)
                     }
                   }
@@ -122,5 +126,14 @@ fun BarcodeCamera(modifier: Modifier = Modifier, onBarcode: (String) -> Unit) {
       executor.shutdown()
     }
   }
-  if (cameraError.isNotBlank()) Text(cameraError)
+  if (cameraError.isNotBlank()) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+      Surface(Modifier.padding(24.dp), color = MaterialTheme.colorScheme.errorContainer) {
+        Text(
+          "Câmera indisponível. Feche o leitor e digite o código. $cameraError",
+          Modifier.padding(16.dp),
+        )
+      }
+    }
+  }
 }

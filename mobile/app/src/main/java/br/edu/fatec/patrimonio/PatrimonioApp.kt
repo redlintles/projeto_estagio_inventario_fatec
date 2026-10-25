@@ -13,9 +13,12 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import java.io.File
@@ -64,6 +67,7 @@ fun PatrimonioApp() {
     ) {
       mutableStateOf<JSONObject?>(null)
     }
+  var baseExpanded by rememberSaveable { mutableStateOf(false) }
   var scanner by remember { mutableStateOf(false) }
   var divergenceType by rememberSaveable { mutableStateOf("") }
   var found by rememberSaveable { mutableStateOf("") }
@@ -231,6 +235,36 @@ fun PatrimonioApp() {
       dismissButton = { TextButton(onClick = { archiveOperation = null }) { Text("Cancelar") } },
     )
   }
+  if (scanner && logged) {
+    Dialog(
+      onDismissRequest = { scanner = false },
+      properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+      Surface(Modifier.fillMaxSize(), color = Color.Black, contentColor = Color.White) {
+        Box(Modifier.fillMaxSize()) {
+          BarcodeCamera(Modifier.fillMaxSize()) { lookup(it) }
+          Surface(
+            modifier = Modifier.align(Alignment.TopCenter).fillMaxWidth(),
+            color = Color.Black.copy(alpha = 0.75f),
+            contentColor = Color.White,
+          ) {
+            Column(Modifier.statusBarsPadding().padding(20.dp)) {
+              Text("Ler código de barras", style = MaterialTheme.typography.titleLarge)
+              Text(
+                "Enquadre a etiqueta inteira. A leitura fecha a câmera e abre o bem para revisão."
+              )
+            }
+          }
+          Button(
+            onClick = { scanner = false },
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(24.dp),
+          ) {
+            Text("Fechar câmera / digitar código")
+          }
+        }
+      }
+    }
+  }
   Scaffold(
     topBar = {
       Surface(tonalElevation = 2.dp) {
@@ -353,6 +387,18 @@ fun PatrimonioApp() {
             },
             singleLine = true,
           )
+          OutlinedButton(
+            enabled = !busy,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+              work {
+                withContext(Dispatchers.IO) { Api(session, url).request("health") }
+                message = "Servidor acessível. Entre com sua conta para preparar a coleta."
+              }
+            },
+          ) {
+            Text("Testar conexão com servidor")
+          }
           Text("Credenciais", style = MaterialTheme.typography.titleMedium)
           OutlinedTextField(
             email,
@@ -406,32 +452,37 @@ fun PatrimonioApp() {
               "Base e sincronização",
               "${assets.size} bens na base local · ${if(lastRefresh.isBlank()) "ainda não atualizada" else localDateTime(lastRefresh)}",
             ) {
-              Text(
-                "Atualize com conexão antes de iniciar a conferência.",
-                style = MaterialTheme.typography.bodyMedium,
-              )
-              Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                  modifier = Modifier.weight(1f),
-                  enabled = !busy,
-                  onClick = {
-                    work {
-                      reload()
-                      message = "Base local atualizada."
-                    }
-                  },
-                ) {
-                  Text("Atualizar base")
-                }
-                OutlinedButton(
-                  modifier = Modifier.weight(1f),
-                  enabled = !busy,
-                  onClick = {
-                    SyncWorker.schedule(context)
-                    message = "Sincronização agendada. Consulte as pendências."
-                  },
-                ) {
-                  Text("Sincronizar")
+              TextButton(onClick = { baseExpanded = !baseExpanded }) {
+                Text(if (baseExpanded) "Recolher controles" else "Atualizar base e sincronizar")
+              }
+              if (baseExpanded) {
+                Text(
+                  "Atualize com conexão antes de iniciar a conferência.",
+                  style = MaterialTheme.typography.bodyMedium,
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                  OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    enabled = !busy,
+                    onClick = {
+                      work {
+                        reload()
+                        message = "Base local atualizada."
+                      }
+                    },
+                  ) {
+                    Text("Atualizar base")
+                  }
+                  OutlinedButton(
+                    modifier = Modifier.weight(1f),
+                    enabled = !busy,
+                    onClick = {
+                      SyncWorker.schedule(context)
+                      message = "Sincronização agendada. Consulte as pendências."
+                    },
+                  ) {
+                    Text("Sincronizar")
+                  }
                 }
               }
             }
@@ -599,16 +650,15 @@ fun PatrimonioApp() {
                   Text("Buscar")
                 }
               }
-              OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { scanner = !scanner }) {
-                Text(if (scanner) "Fechar câmera" else "Ler com câmera")
+              Button(
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                enabled = !busy && (tab != "Inventário" || inventoryId.isNotBlank()),
+                onClick = { scanner = true },
+              ) {
+                Text("Ler com câmera")
               }
-              if (scanner) {
-                Text(
-                  "Enquadre o código inteiro, mantenha o aparelho firme e evite reflexos.",
-                  style = MaterialTheme.typography.bodyMedium,
-                )
-                BarcodeCamera(Modifier.fillMaxWidth().height(240.dp)) { lookup(it) }
-              }
+              if (tab == "Inventário" && inventoryId.isBlank())
+                Text("Selecione um inventário aberto antes de iniciar a leitura.")
             }
             if (selected == null && tab == "Identificar")
               Text(
