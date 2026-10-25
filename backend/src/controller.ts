@@ -1,3 +1,4 @@
+import { inventoryObservation, missingInput } from "./validation";
 import { UsersService } from "./auth/users.service";
 import { ResourceLimitInterceptor } from "./resource-limit";
 import { permissionKeys } from "./auth/permissions";
@@ -23,6 +24,7 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiTags, ApiBearerAuth, ApiConsumes, ApiBody } from "@nestjs/swagger";
@@ -485,12 +487,14 @@ export class ApiController {
   }
   @Post("settings") @RequirePermissions("settings.manage") setting(
     @Body() body: unknown,
+    @Req() request: AuthRequest,
   ) {
     const input = parse(
       z
         .object({
           name: z.enum([
             "PRAZO_BAIXA_DIAS",
+            "INVENTARIO_EXCLUSIVO_LOCAL",
             "EMAIL_CPS",
             "EMAIL_DISPONIBILIZACAO",
           ]),
@@ -501,7 +505,13 @@ export class ApiController {
     );
     if (input.name === "PRAZO_BAIXA_DIAS")
       parse(z.coerce.number().int().min(1).max(3650), input.value);
-    else
+    else if (input.name === "INVENTARIO_EXCLUSIVO_LOCAL") {
+      if (request.user.role !== "ADMIN")
+        throw new ForbiddenException(
+          "Somente administradores podem alterar o bloqueio de inventários por sala.",
+        );
+      parse(z.enum(["true", "false"]), input.value);
+    } else
       for (const email of input.value
         .split(",")
         .map((v) => v.trim())
@@ -542,13 +552,40 @@ export class ApiController {
   close(@Param("id") id: string, @Req() request: AuthRequest) {
     return this.inventory.close(parse(uuid, id), request.user);
   }
+  @Post("inventories/:id/cancel")
+  @RequirePermissions("inventories.manage")
+  cancelInventory(@Param("id") id: string, @Req() request: AuthRequest) {
+    return this.inventory.cancel(parse(uuid, id), request.user);
+  }
+  @Post("inventories/:id/complete")
+  @RequirePermissions("inventories.manage")
+  completeInventory(@Param("id") id: string, @Req() request: AuthRequest) {
+    return this.inventory.complete(parse(uuid, id), request.user);
+  }
+  @Post("inventories/:id/missing")
+  @RequirePermissions("inventories.manage")
+  missingInventory(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Req() request: AuthRequest,
+  ) {
+    return this.inventory.onlineMissing(
+      parse(uuid, id),
+      parse(missingInput, body),
+      request.user,
+    );
+  }
   @Post("sync") @RequirePermissions("inventories.manage") sync(
     @Body() body: unknown,
     @Req() request: AuthRequest,
   ) {
     const input = parse(
       z
-        .object({ operationId: uuid, inventoryId: uuid, input: scanInput })
+        .object({
+          operationId: uuid,
+          inventoryId: uuid,
+          input: inventoryObservation,
+        })
         .strict(),
       body,
     );

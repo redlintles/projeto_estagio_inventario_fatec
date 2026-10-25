@@ -75,7 +75,11 @@ export function Inventories({ state }: { state: AppState }) {
               </strong>
               <span>
                 {new Date(i.startedAt).toLocaleString("pt-BR")} ·{" "}
-                {i.status === "OPEN" ? "Aberto" : "Encerrado"}
+                {i.status === "OPEN"
+                  ? "Aberto"
+                  : i.status === "CANCELLED"
+                    ? "Cancelado"
+                    : "Encerrado"}
               </span>
             </button>
           ))}
@@ -83,100 +87,127 @@ export function Inventories({ state }: { state: AppState }) {
             <div className="panel">
               <h2>Inventário {inventory.id.slice(0, 8)}</h2>
               <p>
-                {inventory.items?.length ?? 0} conferidos ·{" "}
-                {inventory.missingIds?.length ?? 0} esperados ainda não
-                conferidos
+                {inventory.items?.filter((i) => i.result !== "NOT_FOUND")
+                  .length ?? 0}{" "}
+                conferidos · {inventory.notFoundIds?.length ?? 0} não
+                encontrados · {inventory.missingIds?.length ?? 0} esperados
+                ainda não conferidos
               </p>
-              {inventory.status === "OPEN" && operator && (
-                <>
-                  <form
-                    className="grid-form"
-                    onSubmit={(e) => {
-                      const b = form(e);
-                      void run(async () => {
-                        const candidates = await A.request<A.Asset[]>(
-                          `assets?patrimony=${encodeURIComponent(b.patrimony)}`,
-                          token,
-                        );
-                        const asset = candidates.find(
-                          (a) => a.patrimony === b.patrimony,
-                        );
-                        if (!asset)
-                          throw new Error("Patrimônio não encontrado.");
-                        await A.request(
-                          `inventories/${inventory.id}/scans`,
-                          token,
-                          {
-                            assetId: asset.id,
-                            expectedVersion: asset.version,
-                            observedAt: new Date().toISOString(),
-                            ...(b.type
-                              ? {
-                                  divergence: {
-                                    type: b.type,
-                                    foundDescription: b.foundDescription,
-                                    notes: b.notes,
-                                  },
-                                }
-                              : {}),
-                          },
-                        );
-                        setInventory(
-                          await A.request<A.Inventory>(
-                            `inventories/${inventory.id}`,
+              {inventory.expectedAssets && (
+                <ul>
+                  {inventory.expectedAssets
+                    .filter(
+                      (a) =>
+                        inventory.missingIds?.includes(a.id) ||
+                        inventory.notFoundIds?.includes(a.id),
+                    )
+                    .map((a) => (
+                      <li key={a.id}>
+                        {a.patrimony} · {a.description} —{" "}
+                        {inventory.notFoundIds?.includes(a.id)
+                          ? "Não encontrado"
+                          : "A conferir"}
+                      </li>
+                    ))}
+                </ul>
+              )}
+              {inventory.status === "OPEN" &&
+                operator &&
+                (inventory.userId === state.user?.id ||
+                  state.user?.role === "ADMIN") && (
+                  <>
+                    <form
+                      className="grid-form"
+                      onSubmit={(e) => {
+                        const b = form(e);
+                        void run(async () => {
+                          const candidates = await A.request<A.Asset[]>(
+                            `assets?patrimony=${encodeURIComponent(b.patrimony)}`,
                             token,
-                          ),
-                        );
-                      });
-                    }}
-                  >
-                    <label>
-                      Patrimônio
-                      <input name="patrimony" required />
-                    </label>
-                    <label>
-                      Divergência
-                      <select name="type">
-                        <option value="">Conferência correta</option>
-                        <option value="WRONG_LOCATION">
-                          Localização incorreta
-                        </option>
-                        <option value="WRONG_LABEL">Etiqueta incorreta</option>
-                        <option value="WRONG_ITEM">Bem diferente</option>
-                        <option value="DUPLICATE">Patrimônio duplicado</option>
-                        <option value="OTHER">Outra</option>
-                      </select>
-                    </label>
-                    <label>
-                      Descrição encontrada
-                      <input name="foundDescription" />
-                    </label>
-                    <label>
-                      Observação
-                      <input name="notes" />
-                    </label>
-                    <button disabled={busy}>Registrar conferência</button>
-                  </form>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() =>
-                      void run(
-                        async () =>
+                          );
+                          const asset = candidates.find(
+                            (a) => a.patrimony === b.patrimony,
+                          );
+                          if (!asset)
+                            throw new Error("Patrimônio não encontrado.");
+                          await A.request(
+                            `inventories/${inventory.id}/scans`,
+                            token,
+                            {
+                              assetId: asset.id,
+                              expectedVersion: asset.version,
+                              observedAt: new Date().toISOString(),
+                              ...(b.type
+                                ? {
+                                    divergence: {
+                                      type: b.type,
+                                      foundDescription: b.foundDescription,
+                                      notes: b.notes,
+                                    },
+                                  }
+                                : {}),
+                            },
+                          );
                           setInventory(
                             await A.request<A.Inventory>(
-                              `inventories/${inventory.id}/close`,
+                              `inventories/${inventory.id}`,
                               token,
                             ),
-                          ),
-                        "Inventário encerrado. Leituras pendentes no celular não serão aceitas.",
-                      )
-                    }
-                  >
-                    Encerrar inventário
-                  </button>
-                </>
-              )}
+                          );
+                        });
+                      }}
+                    >
+                      <label>
+                        Patrimônio
+                        <input name="patrimony" required />
+                      </label>
+                      <label>
+                        Divergência
+                        <select name="type">
+                          <option value="">Conferência correta</option>
+                          <option value="WRONG_LOCATION">
+                            Localização incorreta
+                          </option>
+                          <option value="WRONG_LABEL">
+                            Etiqueta incorreta
+                          </option>
+                          <option value="WRONG_ITEM">Bem diferente</option>
+                          <option value="DUPLICATE">
+                            Patrimônio duplicado
+                          </option>
+                          <option value="OTHER">Outra</option>
+                        </select>
+                      </label>
+                      <label>
+                        Descrição encontrada
+                        <input name="foundDescription" />
+                      </label>
+                      <label>
+                        Observação
+                        <input name="notes" />
+                      </label>
+                      <button disabled={busy}>Registrar conferência</button>
+                    </form>
+                    <button
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() =>
+                        void run(
+                          async () =>
+                            setInventory(
+                              await A.request<A.Inventory>(
+                                `inventories/${inventory.id}/close`,
+                                token,
+                              ),
+                            ),
+                          "Inventário encerrado. Leituras pendentes no celular não serão aceitas.",
+                        )
+                      }
+                    >
+                      Encerrar inventário
+                    </button>
+                  </>
+                )}
             </div>
           )}
         </>

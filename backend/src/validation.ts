@@ -47,3 +47,12 @@ export const scanInput = z
       .optional(),
   })
   .strict();
+
+export const missingInput = z
+  .object({
+    assetId: uuid,
+    observedAt: z.iso.datetime({ offset: true }),
+    notFound: z.literal(true),
+  })
+  .strict();
+export const inventoryObservation = z.union([scanInput, missingInput]);

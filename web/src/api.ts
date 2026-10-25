@@ -71,6 +71,10 @@ export interface Inventory {
   locationId: string;
   status: string;
   startedAt: string;
+  userId?: string;
+  expectedIds?: string[];
+  expectedAssets?: { id: string; patrimony: string; description: string }[];
+  notFoundIds?: string[];
   missingIds?: string[];
   items?: { assetId: string; result: string }[];
 }

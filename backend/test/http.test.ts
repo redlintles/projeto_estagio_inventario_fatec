@@ -611,4 +611,35 @@ suite("Contrato HTTP e permissões", () => {
       .attach("file", Buffer.from("bad"), "bad.xlsx")
       .expect(400);
   });
+  it("reserva o parâmetro de concorrência ao administrador e valida booleanos", async () => {
+    const email = `${randomUUID()}@example.org`;
+    await db.getRepository(S.UserSchema).save({
+      id: randomUUID(),
+      name: "Configuração limitada",
+      email,
+      passwordHash: hashPassword("senha-123456789"),
+      role: "CONSULTA",
+      permissions: ["settings.manage"],
+      active: true,
+    });
+    const { body: login } = await request(app.getHttpServer())
+      .post("/api/auth/login")
+      .send({ email, password: "senha-123456789" })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post("/api/settings")
+      .auth(login.token, { type: "bearer" })
+      .send({ name: "INVENTARIO_EXCLUSIVO_LOCAL", value: "false" })
+      .expect(403);
+    await request(app.getHttpServer())
+      .post("/api/settings")
+      .auth(admin, { type: "bearer" })
+      .send({ name: "INVENTARIO_EXCLUSIVO_LOCAL", value: "invalid" })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post("/api/settings")
+      .auth(admin, { type: "bearer" })
+      .send({ name: "INVENTARIO_EXCLUSIVO_LOCAL", value: "true" })
+      .expect(201);
+  });
 });

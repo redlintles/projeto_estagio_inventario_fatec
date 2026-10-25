@@ -68,7 +68,7 @@ export interface Inventory {
   id: string;
   locationId: string;
   userId: string;
-  status: "OPEN" | "CLOSED";
+  status: "OPEN" | "CLOSED" | "CANCELLED";
   startedAt: Date;
   finishedAt: Date | null;
   expectedIds: string[];
@@ -78,7 +78,7 @@ export interface InventoryItem {
   inventoryId: string;
   assetId: string;
   userId: string;
-  result: "CONFIRMED" | "DIVERGENCE";
+  result: "CONFIRMED" | "DIVERGENCE" | "NOT_FOUND";
   observedAt: Date;
   createdAt: Date;
 }

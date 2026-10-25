@@ -317,7 +317,11 @@ export class ReportsService {
         ).map((i) => [
           ...base(i.assetId),
           inventoryMap.get(i.inventoryId) ?? "Inventário indisponível",
-          i.result === "CONFIRMED" ? "Conferência correta" : "Com divergência",
+          i.result === "CONFIRMED"
+            ? "Conferência correta"
+            : i.result === "NOT_FOUND"
+              ? "Não encontrado"
+              : "Com divergência",
           user(i.userId),
           i.observedAt,
         ]);

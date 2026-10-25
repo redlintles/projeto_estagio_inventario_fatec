@@ -1,3 +1,4 @@
+import { InventoryProgress1786000000000 } from "../src/persistence/inventory-progress";
 import { BatchRedo1785000000000 } from "../src/persistence/batch-redo";
 import { BatchHistory1783000000000 } from "../src/persistence/batch-history";
 import { ReportsService } from "../src/reports/reports";
@@ -75,6 +76,7 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
         BatchHistory1783000000000,
         UserPermissions1784000000000,
         BatchRedo1785000000000,
+        InventoryProgress1786000000000,
         Initial1780000000000,
         RealTemplate1781000000000,
         AssetUnit1782000000000,
@@ -88,6 +90,9 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
     );
     assets = new AssetsService(db);
     inventory = new InventoryService(db, assets);
+    await db
+      .getRepository(SettingSchema)
+      .save({ name: "INVENTARIO_EXCLUSIVO_LOCAL", value: "false" });
     imports = new ImportsService(db, assets);
     await db.getRepository(UserSchema).save({
       ...actor,
