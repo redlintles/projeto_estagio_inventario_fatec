@@ -14,7 +14,9 @@
     "format:check": "prettier --check .",
     "demo": "node scripts/demo.mjs",
     "demo:stop": "node scripts/demo.mjs stop",
-    "demo:lan": "node scripts/demo.mjs lan"
+    "demo:lan": "node scripts/demo.mjs lan",
+    "start": "node scripts/demo.mjs lan",
+    "stop": "node scripts/demo.mjs stop"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

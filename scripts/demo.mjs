@@ -64,14 +64,16 @@ if (action === "stop") {
     "Demonstração parada. Banco e credenciais preservados para a próxima execução.",
   );
 } else {
-  run([...compose, "up", "--build", "-d"]);
+  run([...compose, "up", "--build", "-d", "--wait", "--wait-timeout", "180"]);
   if (lan) {
     for (const entries of Object.values(networkInterfaces())) {
       for (const entry of entries ?? []) {
-        if (entry.family === "IPv4" && !entry.internal)
+        if (entry.family === "IPv4" && !entry.internal) {
+          console.log(`Portal na rede local: http://${entry.address}:8080`);
           console.log(
             `API para o celular na rede local: http://${entry.address}:3000/api`,
           );
+        }
       }
     }
   }
