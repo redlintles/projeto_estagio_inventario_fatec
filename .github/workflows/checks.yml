@@ -35,6 +35,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew spotlessCheck :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --console=plain
         working-directory: mobile
