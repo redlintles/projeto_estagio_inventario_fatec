@@ -1,5 +1,7 @@
 # Implantação e backup
 
+Para instalar em uma máquina nova, siga primeiro o [guia simplificado de produção para Windows e Linux](PRODUCAO.md). Ele usa `infra/compose.production.yaml`, separado da demonstração. As informações abaixo são referência técnica complementar; os itens de infraestrutura precisam ser validados na rede definitiva.
+
 A hospedagem confirmada será em uma máquina interna da Fatec, na rede local compartilhada, sem VLANs. Portal e API permanecerão nesse servidor; os celulares precisarão alcançar a API pela rede da instituição. Endereço estável, HTTPS, acesso pelo Wi-Fi, SMTP e rotina de backup ainda precisam ser definidos e validados.
 
 ## Servidor na rede interna da Fatec

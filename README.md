@@ -1,3 +1,5 @@
+> **Instalação em máquina nova (produção):** siga o [guia para Windows e Linux](docs/PRODUCAO.md). Windows: dois cliques em `INICIAR-PRODUCAO.cmd`. Linux com Docker instalado: `sudo bash producao.sh`. O guia inclui instalação do Docker, HTTPS, senhas, backup e atualização.
+
 # Gestão Patrimonial Fatec
 
 Sistema interno da unidade de ensino para importar a base patrimonial, conferir ativos por localização, registrar divergências e acompanhar disponibilização, reserva, transporte, transferência e baixa. O portal atende à gestão; o aplicativo Android atende à conferência física, inclusive em salas sem internet.

@@ -28,3 +28,6 @@ local.properties
 *.bak
 
 .kotlin/
+
+# Configuração, certificados e backups da instalação de produção.
+producao/
