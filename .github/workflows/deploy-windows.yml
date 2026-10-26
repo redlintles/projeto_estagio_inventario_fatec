@@ -1,0 +1,30 @@
+name: Deploy Windows
+on:
+  push:
+    paths:
+      - "*.cmd"
+      - "scripts/production*"
+      - "scripts/test-production-windows.mjs"
+      - ".github/workflows/deploy-windows.yml"
+  pull_request:
+    paths:
+      - "*.cmd"
+      - "scripts/production*"
+      - "scripts/test-production-windows.mjs"
+      - ".github/workflows/deploy-windows.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-launchers:
+    name: Windows PowerShell 5.1 e CMD (Docker simulado)
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Testar iniciadores e tratamento de erros
+        shell: powershell
+        run: node scripts/test-production-windows.mjs
