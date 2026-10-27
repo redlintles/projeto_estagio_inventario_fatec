@@ -25,6 +25,11 @@ try {
         throw 'Instale e abra o Docker Desktop. Consulte docs/PRODUCAO.md.'
     }
     if ($Automatico) {
+        if (-not (Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue)) {
+            foreach ($candidate in @("$env:ProgramFiles\Docker\Docker\Docker Desktop.exe", "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe")) {
+                if (Test-Path $candidate) { Start-Process -FilePath $candidate; break }
+            }
+        }
         Write-Host 'Aguardando Docker Desktop ficar pronto...'
         $deadline = (Get-Date).AddSeconds($EsperaDockerSegundos)
         do {
@@ -63,12 +68,14 @@ try {
                 Compose-Run up --build -d --wait --wait-timeout 300
             }
             $config = Get-Content producao/.env
+            $suffix = (($config | Where-Object { $_ -like 'SITE_PORT_SUFFIX=*' }) -replace '^SITE_PORT_SUFFIX=', '')
+            $login = (($config | Where-Object { $_ -like 'BOOTSTRAP_EMAIL=*' }) -replace '^BOOTSTRAP_EMAIL=', '')
             if ($config -contains 'TLS_MODE=internal') {
                 Compose-Run cp gateway:/data/caddy/pki/authorities/local/root.crt producao/certificado-local.crt
             }
             $address = ($config | Where-Object { $_ -like 'SITE_HOST=*' }) -replace '^SITE_HOST=', ''
-            Write-Host "Servicos iniciados: https://$address"
-            Write-Host 'Login inicial: admin@fatec.local. Senha: linha BOOTSTRAP_PASSWORD de producao/.env.'
+            Write-Host "Servicos iniciados: https://$address$suffix"
+            Write-Host "Login inicial: $login. Consulte producao\ACESSO.txt; em instalacoes antigas, producao\.env."
             Write-Host 'Instale o certificado conforme docs/PRODUCAO.md antes de acessar.'
         }
         'parar' { Compose-Run stop; Write-Host 'Sistema parado. Dados preservados.' }

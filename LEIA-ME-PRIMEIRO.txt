@@ -1,0 +1,174 @@
+PATRIMONIO FATEC - COMO INSTALAR E USAR
+=====================================
+
+COMECE POR AQUI
+
+Voce nao precisa saber programar. O computador precisa ter um sistema operacional
+ja instalado, conexao com a internet e Docker funcionando. Como referencia inicial,
+use uma maquina com 8 GB de memoria e 30 GB livres. Fotos e backups usam mais espaco.
+O computador deve permanecer ligado e sem suspensao durante o uso.
+
+1. INSTALE O DOCKER MANUALMENTE (UMA UNICA VEZ)
+
+Windows:
+- Use Windows 11 compativel com Docker Desktop. Baixe o instalador oficial em:
+  https://docs.docker.com/desktop/setup/install/windows-install/
+- Execute o instalador e siga suas instrucoes. Escolha WSL 2 quando oferecido.
+- Reinicie se solicitado. Abra Docker Desktop pelo menu Iniciar e aguarde ficar pronto.
+- Se pedir atualizacao do WSL, abra o Terminal como administrador e execute:
+  wsl --update
+- Se informar que a virtualizacao esta desativada, peca ajuda a quem cuida da maquina.
+  Essa configuracao depende do fabricante. Windows Server nao usa Docker Desktop.
+
+Linux:
+- Instale Docker Engine e o plugin Docker Compose pelo guia da sua distribuicao:
+  https://docs.docker.com/engine/install/
+- Ubuntu: https://docs.docker.com/engine/install/ubuntu/
+- Debian: https://docs.docker.com/engine/install/debian/
+- O plugin Compose deve ter versao 2.24.4 ou superior.
+- Nao e preciso instalar Node.js, PostgreSQL, Nginx nem Git.
+
+2. BAIXE E EXTRAIA O PROJETO
+
+- No GitHub, clique em Code e depois em Download ZIP.
+- Quando terminar, clique com o botao direito no ZIP e escolha Extrair tudo/Extrair.
+- Nao execute nada dentro do arquivo ZIP: primeiro extraia o conteudo.
+- Coloque a pasta extraida em um local permanente no disco deste computador.
+  No Windows, por exemplo: C:\FatecPatrimonio. Evite OneDrive e pastas de rede.
+- Abra a pasta que contem este arquivo e INSTALAR.cmd / instalar.sh.
+
+3. EXECUTE APENAS O ASSISTENTE
+
+Windows: de dois cliques em INSTALAR.cmd.
+Linux: abra um terminal dentro da pasta e execute:
+  bash instalar.sh
+
+O assistente faz perguntas simples. Pressione Enter para aceitar a sugestao.
+Nao precisa escolher banco de dados, servicos, comandos ou ferramentas.
+
+O que ele pergunta:
+- Endereco do computador: geralmente pode aceitar o IP detectado automaticamente.
+  Se usar somente neste computador, pode digitar localhost.
+- Porta: pode aceitar 443. Se ja estiver ocupada, escolha outra, por exemplo 8443.
+- Usuario de acesso: informe um e-mail ou aceite admin@fatec.local.
+  Esse e-mail e o nome de entrada; nao precisa existir para entrar no portal.
+- Senha: escolha uma com pelo menos 12 caracteres. Enter gera uma senha segura.
+  Ao digitar, a senha nao aparece na tela. Se escolher uma senha, repita-a quando pedido.
+- Inicio automatico: responda s para sim ou n para nao. A sugestao e sim quando suportado.
+- Confirmacao final: Enter autoriza preparar e iniciar com as respostas escolhidas.
+
+O assistente gera as senhas internas, monta os componentes, prepara o banco,
+cria a conta de acesso, inicia o sistema, prepara o certificado HTTPS neste
+computador e configura o inicio automatico conforme a sua resposta.
+Pode levar varios minutos. Nao feche durante a instalacao.
+
+O Windows pode pedir confirmacao de confianca no certificado e autorizacao de
+administrador para permitir a porta na rede local. Confirme para concluir.
+No Linux, a senha do seu usuario pode ser pedida pelo sudo. O terminal nao mostra
+caracteres enquanto voce digita essa senha: isso e normal.
+
+Aguarde INSTALACAO CONCLUIDA e abra o endereco mostrado. O Windows tenta abrir
+o navegador automaticamente. Se nao abrir, copie o endereco e cole no navegador.
+Usuario e senha inicial ficam no arquivo privado producao/ACESSO.txt.
+No Linux, Ctrl+H mostra arquivos ocultos; a pasta producao nao e oculta.
+
+4. DUVIDAS COMUNS
+
+PRECISO EXECUTAR VARIOS ARQUIVOS?
+Nao. Para instalar e iniciar, use sempre INSTALAR.cmd ou bash instalar.sh.
+Os outros scripts sao ferramentas de manutencao e nao sao passos da instalacao.
+
+PRECISO RESPONDER DE NOVO TODA VEZ?
+Nao. Depois de configurado, o mesmo assistente preserva as respostas, as contas,
+as senhas, as fotos e o banco, e inicia o sistema. Ele nao redefine uma senha
+que tenha sido alterada no portal. Nao apague producao para trocar uma conta.
+
+PRECISO DE INTERNET SEMPRE?
+A primeira instalacao e as atualizacoes precisam baixar componentes. Depois,
+o acesso local nao precisa de internet. Servicos externos, como envio de e-mail,
+precisam de conexao e configuracao propria.
+
+O QUE SIGNIFICA HTTPS? POSSO IGNORAR UM AVISO DE SEGURANCA?
+HTTPS protege a conexao. O assistente instala a confianca do certificado neste
+computador. Feche e reabra o navegador se necessario. Nao ignore avisos de seguranca.
+Alguns navegadores Linux mantem sua propria lista de certificados: se o aviso
+persistir, peca ao suporte para importar producao/certificado-local.crt como autoridade.
+
+OUTROS COMPUTADORES PODEM ACESSAR?
+Sim, se estiverem na rede autorizada e alcancarem o IP e a porta escolhidos.
+Compartilhe o endereco mostrado, incluindo https:// e a porta se aparecer.
+Eles tambem precisam confiar no certificado publico producao/certificado-local.crt.
+Compartilhe somente esse certificado publico, nunca a pasta producao inteira.
+No Windows, a regra criada vale para redes Privadas e de Dominio, na sub-rede local.
+Se a rede estiver como Publica ou tiver bloqueios institucionais, peca ajuda ao
+responsavel pela rede. Firewalls personalizados tambem podem precisar de ajuste.
+
+E OS CELULARES ANDROID?
+O aplicativo de producao exige certificado confiavel. Instalar um certificado
+apenas como usuario no Android pode nao bastar. A TI deve preparar um endereco
+institucional com certificado confiavel, ou aparelhos gerenciados com confianca
+de sistema. O assistente nao consegue alterar a confianca de outros aparelhos.
+Nao use a versao de testes do aplicativo como solucao para contornar isso.
+
+O IP DO COMPUTADOR PODE MUDAR?
+Pode. Para uso por outras pessoas, peca ao responsavel pela rede que reserve o
+endereco sugerido para esta maquina. Isso evita precisar mudar o endereco depois.
+
+O INICIO AUTOMATICO FUNCIONA COMO?
+Linux com Docker Engine e systemd: o assistente cria um servico que inicia com
+o computador, sem login. Em sistemas sem esse suporte, a sugestao sera nao.
+Windows com Docker Desktop: o inicio ocorre depois de entrar na mesma conta do
+Windows. O atalho abre o Docker Desktop e espera ficar pronto. Nao e necessario
+abrir o projeto manualmente. Sem login, nao ha garantia de atendimento. Para
+servidor que precise ligar e funcionar sozinho sem login, use Linux.
+Nao configuramos login automatico nem salvamos a senha do Windows.
+Se responder nao, o assistente nao configura inicio automatico desta instalacao.
+
+NAO QUERO QUE O COMPUTADOR DURMA DURANTE O USO.
+Abra as configuracoes de energia do sistema e desative a suspensao automatica.
+O projeto nao altera sua politica de energia. No Windows, bloquear a tela e
+diferente de sair da conta: mantenha a sessao conectada durante o atendimento.
+
+O DOCKER NAO ESTA PRONTO OU NAO FOI ENCONTRADO.
+Conclua a instalacao manual. No Windows, abra Docker Desktop e aguarde.
+No Linux, o assistente pode pedir senha de administrador para iniciar/acessar Docker.
+Depois, execute novamente o mesmo assistente. Nao apague os dados.
+
+A PORTA ESTA OCUPADA.
+Escolha outra porta na pergunta do assistente. Se o erro apareceu depois de salvar
+as respostas, peca ao suporte para identificar o programa que esta usando a porta
+ou ajustar HTTPS_PORT e SITE_PORT_SUFFIX em producao/.env. Nao encerre programas
+desconhecidos nem apague o banco para resolver uma disputa de porta.
+
+E SE EU NEGAR A PERMISSAO DE ADMINISTRADOR?
+A instalacao nao informa conclusao. Execute o assistente novamente e autorize
+quando solicitado. O que ja foi preparado sera preservado.
+
+ONDE FICAM MEUS DADOS? POSSO APAGAR O DOCKER OU A PASTA?
+O banco e as fotos ficam nos volumes do Docker. A configuracao e as credenciais
+ficam na pasta privada producao. Nao apague volumes, nao use Factory reset e
+nao desinstale Docker sem backup. Copiar somente o codigo nao copia o banco.
+Nao mova a pasta depois de ativar o inicio automatico; o caminho fica registrado.
+
+COMO FACO BACKUP OU PARO O SISTEMA?
+Avise os usuarios antes e sincronize os celulares.
+Windows: BACKUP-PRODUCAO.cmd para backup; PARAR-PRODUCAO.cmd para parar.
+Linux: bash producao.sh backup; bash producao.sh parar (use sudo se necessario).
+O backup deixa o sistema parado para evitar gravacoes durante a copia.
+Copie a pasta completa criada em producao/backups para outro dispositivo protegido.
+Depois, use o assistente principal para retomar o atendimento.
+
+COMO ATUALIZO?
+Faca backup, pare o sistema e extraia a versao nova no mesmo local, preservando
+producao. Execute o assistente novamente. Confira login, fotos e consultas antes
+de liberar o uso. A recuperacao de backups deve ser feita com suporte.
+
+POR QUE O E-MAIL NAO ESTA SENDO ENVIADO?
+O acesso ao portal funciona sem SMTP. As notificacoes ficam pendentes ate uma
+conta de envio real ser configurada pelo responsavel, conforme docs/PRODUCAO.md.
+O assistente nao pergunta parametros de e-mail para nao complicar a instalacao.
+
+COMO PECO AJUDA?
+Anote a mensagem apresentada e consulte docs/PRODUCAO.md para suporte tecnico.
+No Windows, o registro do inicio automatico fica em producao/inicializacao-automatica.log.
+Nao envie senhas, producao/ACESSO.txt, producao/.env nem backups em chamados.

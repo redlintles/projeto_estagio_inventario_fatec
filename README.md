@@ -1,4 +1,4 @@
-> **Instalação em máquina nova (produção):** siga o [guia para Windows e Linux](docs/PRODUCAO.md). Windows: dois cliques em `INICIAR-PRODUCAO.cmd`. Linux com Docker instalado: `sudo bash producao.sh`. O guia inclui instalação do Docker, HTTPS, senhas, backup e atualização.
+> **Máquina nova / Download ZIP:** leia `LEIA-ME-PRIMEIRO.txt`. Instale o Docker manualmente, extraia o ZIP e execute **INSTALAR.cmd** no Windows ou **bash instalar.sh** no Linux. O assistente pergunta os dados necessários, prepara os serviços, HTTPS e início automático. Mais detalhes no [guia de produção](docs/PRODUCAO.md).
 
 # Gestão Patrimonial Fatec
 

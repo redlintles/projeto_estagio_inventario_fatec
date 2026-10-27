@@ -10,6 +10,7 @@ FROM node:24-alpine
 WORKDIR /app
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/backend backend
+COPY scripts/production-initialize.mjs backend/production-initialize.mjs
 RUN mkdir /app/uploads && chown -R node:node /app
 USER node
 WORKDIR /app/backend

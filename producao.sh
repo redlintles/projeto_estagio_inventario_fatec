@@ -33,8 +33,8 @@ case "$action" in
     if [[ $(sed -n 's/^TLS_MODE=//p' producao/.env | tr -d '\r') == internal ]]; then
       "${compose[@]}" cp gateway:/data/caddy/pki/authorities/local/root.crt producao/certificado-local.crt
     fi
-    echo 'Serviços iniciados. Endereço: https://'"$(sed -n 's/^SITE_HOST=//p' producao/.env | tr -d '\r')"
-    echo 'Login: admin@fatec.local. Senha inicial: linha BOOTSTRAP_PASSWORD de producao/.env.'
+    echo 'Serviços iniciados. Endereço: https://'"$(sed -n 's/^SITE_HOST=//p' producao/.env | tr -d '\r')$(sed -n 's/^SITE_PORT_SUFFIX=//p' producao/.env | tr -d '\r')"
+    echo "Login inicial: $(sed -n 's/^BOOTSTRAP_EMAIL=//p' producao/.env | tr -d '\r'). Consulte producao/ACESSO.txt; em instalações antigas, producao/.env."
     echo 'Instale o certificado conforme docs/PRODUCAO.md antes de acessar. API do celular: mesmo endereço acrescido de /api.'
     ;;
   parar) "${compose[@]}" stop; echo 'Sistema parado. Dados preservados.' ;;

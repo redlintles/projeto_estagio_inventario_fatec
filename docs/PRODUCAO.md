@@ -1,5 +1,7 @@
 # Colocar o sistema em funcionamento — Windows e Linux
 
+**Entrada recomendada para quem não é técnico:** leia `LEIA-ME-PRIMEIRO.txt`, instale Docker manualmente, extraia o ZIP e use `INSTALAR.cmd` (Windows) ou `bash instalar.sh` (Linux). O assistente faz as perguntas e executa toda a preparação. As seções abaixo também documentam os comandos de manutenção para suporte.
+
 Este é o guia de produção. O portal, a API (parte que processa os dados) e o banco ficam no mesmo computador. O Docker prepara esses componentes automaticamente. O Docker precisa ter o plugin Compose 2.24.4 ou superior. Não instale Node.js, PostgreSQL ou Nginx separadamente. Não use `npm start` ou `iniciar.sh` para produção: eles iniciam a demonstração, com dados diferentes.
 
 ## 1. Antes de começar
@@ -11,7 +13,7 @@ Use Windows 11 compatível com Docker Desktop e WSL 2, ou uma versão de Ubuntu/
 - [Docker Desktop para Windows](https://docs.docker.com/desktop/setup/install/windows-install/).
 - [Docker Engine para Linux](https://docs.docker.com/engine/install/).
 
-Peça ao responsável pela rede uma única preparação: reservar um IP para esse computador (por exemplo, `192.168.1.50`), permitir que os computadores e celulares alcancem esse endereço e liberar TCP 80 e 443 somente para a rede autorizada. O IP do exemplo é ilustrativo: use o endereço fornecido por ele. Não abra portas no roteador para a internet. Apenas o HTTPS e seu redirecionamento HTTP são publicados; banco e API não têm portas próprias expostas.
+Peça ao responsável pela rede uma única preparação: reservar um IP para esse computador (por exemplo, `192.168.1.50`), permitir que os computadores e celulares alcancem esse endereço e liberar a porta HTTPS escolhida (443 por padrão) somente para a rede autorizada. O IP do exemplo é ilustrativo: use o endereço fornecido por ele. Não abra portas no roteador para a internet. Apenas a porta HTTPS é publicada; banco e API não têm portas próprias expostas.
 
 A máquina deve ficar ligada, sem suspensão automática. Configure essa opção nas configurações de energia. O sistema para de atender se ela desligar ou dormir.
 
@@ -90,7 +92,7 @@ Feche e reabra o navegador. Navegadores com armazenamento próprio de certificad
 
 O APK release exige HTTPS e certificado confiável. Instalar uma autoridade apenas como certificado de usuário no Android não garante que o aplicativo confie nela. Para produção com celulares, peça à TI que prepare um nome institucional e certificado confiável pelo Android, ou distribua a autoridade como confiança de sistema em aparelhos gerenciados. Teste no APK release antes de iniciar coletas reais. A simples execução do script não comprova essa confiança.
 
-Para certificado público automático, a TI deve configurar um domínio que aponte para o servidor e a validação ACME compatível com a rede. No arquivo `producao/.env`, altere `SITE_HOST` para esse domínio e `TLS_MODE` para um endereço de e-mail institucional válido (por exemplo `TLS_MODE=ti@instituicao.edu.br`). O Caddy usa esse e-mail para emissão pública. A validação padrão precisa que a autoridade alcance o servidor nas portas 80/443; redes internas sem essa possibilidade precisam de outro método preparado pela TI, como validação DNS ou um proxy institucional. Não exponha a máquina à internet apenas para contornar isso. Execute o iniciador novamente depois da preparação.
+Para certificado público automático, a TI deve configurar um domínio que aponte para o servidor e a validação ACME compatível com a rede. No arquivo `producao/.env`, altere `SITE_HOST` para esse domínio e `TLS_MODE` para um endereço de e-mail institucional válido (por exemplo `TLS_MODE=ti@instituicao.edu.br`). O Caddy usa esse e-mail para emissão pública. A validação padrão precisa que a autoridade alcance o servidor na porta 443 (validação TLS-ALPN); redes internas sem essa possibilidade precisam de outro método preparado pela TI, como validação DNS ou um proxy institucional. Não exponha a máquina à internet apenas para contornar isso. Execute o iniciador novamente depois da preparação.
 
 A API do celular será o mesmo endereço do portal acrescido de `/api`, por exemplo `https://patrimonio.instituicao.edu.br/api`.
 
@@ -98,7 +100,7 @@ A API do celular será o mesmo endereço do portal acrescido de `/api`, por exem
 
 1. Abra a pasta **producao** criada ao lado do iniciador. Ela contém um arquivo **.env**. No Linux, `Ctrl+H` mostra arquivos ocultos.
 2. Abra `.env` com Bloco de Notas/editor de texto, sem alterar nada. Se necessário, use **Abrir com**. Não renomeie para `.env.txt`.
-3. O login inicial é `admin@fatec.local`. A senha é o texto à direita de `BOOTSTRAP_PASSWORD=`. Copie apenas a senha, sem o nome da variável nem o sinal `=`.
+3. O login é o e-mail escolhido no assistente; o padrão é `admin@fatec.local`. No assistente novo, use `producao/ACESSO.txt`. Nas instalações antigas, a senha é o texto à direita de `BOOTSTRAP_PASSWORD=`. Copie apenas a senha, sem o nome da variável nem o sinal `=`.
 4. Acesse o portal com esse login e senha. Cadastre as contas nominais e permissões de quem usará o sistema na gestão de usuários. Atualize a senha administrativa pelo fluxo de gestão disponível e guarde a senha atual em local seguro. Executar o iniciador novamente não redefine uma conta existente.
 5. Guarde `.env` protegido: ele também contém as senhas internas do banco e o segredo de sessão. Não envie em e-mails, chamados ou capturas de tela. No Windows, mantenha a pasta em uma conta protegida e restrinja a leitura nas propriedades de segurança à conta operadora e aos administradores. No Linux os scripts criam os arquivos privados.
 6. Antes de importar dados reais, entre a partir de outro computador, cadastre um registro de teste, envie uma foto e confira o resultado. Se houver Android, teste conexão, login, foto e sincronização offline usando o APK release. Consulte [operação Android](operacao-lan.md).
@@ -163,7 +165,7 @@ Se uma atualização falhar, preserve os dados e peça suporte. Retornar somente
 | Docker não encontrado                           | Instale Docker conforme a seção do seu sistema e reabra o terminal.                                                                                 |
 | Cannot connect / daemon / permission denied     | Windows: abra Docker Desktop e aguarde. Linux: use `sudo bash producao.sh`; confira se Docker está ativo.                                           |
 | Download ou build falhou                        | Confira internet, espaço livre e acesso aos servidores de pacotes. Execute novamente; a configuração existente é preservada.                        |
-| Port already allocated / address already in use | Outro programa usa 80/443. Peça ao responsável para identificar o conflito; não encerre programas desconhecidos.                                    |
+| Port already allocated / address already in use | Outro programa usa a porta HTTPS escolhida. Peça ao responsável para identificar o conflito; não encerre programas desconhecidos.                   |
 | Inicialização demorou e terminou em erro        | Use `status` e `logs`. Serviços podem continuar ativos. Após corrigir a causa, execute o iniciador novamente.                                       |
 | Só abre no servidor                             | Confira IP, reserva de endereço, firewall e conexão da rede/Wi-Fi com o responsável da rede.                                                        |
 | Aviso de certificado                            | Confira endereço e instale a autoridade conforme seção 4. Não ignore o aviso.                                                                       |
