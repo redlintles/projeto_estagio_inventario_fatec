@@ -27,9 +27,13 @@ for (const name of [
   "production.ps1",
   "production-config.mjs",
   "production-autostart.ps1",
+  "production-setup.mjs",
+  "production-install.ps1",
+  "production-host.ps1",
 ])
   cpSync(path.join(source, "scripts", name), path.join(root, "scripts", name));
 for (const name of [
+  "INSTALAR.cmd",
   "INICIAR-PRODUCAO.cmd",
   "PARAR-PRODUCAO.cmd",
   "BACKUP-PRODUCAO.cmd",
@@ -37,6 +41,10 @@ for (const name of [
   "DESATIVAR-INICIO-AUTOMATICO.cmd",
 ])
   cpSync(path.join(source, name), path.join(root, name));
+writeFileSync(
+  path.join(root, "scripts", "production-host.ps1"),
+  "Set-Content -LiteralPath (Join-Path (Split-Path $PSScriptRoot -Parent) 'producao/host-ok') -Value 'OK'\nexit 0\n",
+);
 const log = path.join(temporary, "docker-calls.jsonl");
 const fake = String.raw`
 import {appendFileSync, readFileSync, writeFileSync, mkdirSync, existsSync} from 'node:fs';
@@ -48,6 +56,11 @@ if (process.env.MOCK_DOCKER_FAIL && args.join(' ').includes(process.env.MOCK_DOC
  console.error('Falha simulada do Docker'); process.exit(42);
 }
 if (args[0] === 'run') {
+ if(args.some(arg=>arg.includes('production-setup.mjs'))) {
+  const assignments={}; for(let i=0;i<args.length;i++) if(args[i]==='-e') {const at=args[i+1].indexOf('=');assignments[args[i+1].slice(0,at)]=args[i+1].slice(at+1);}
+  const result=spawnSync(process.execPath,[path.join(process.cwd(),'scripts','production-setup.mjs')],{env:{...process.env,...assignments,SETUP_CONFIG_DIR:path.join(process.cwd(),'producao')},stdio:'inherit'});
+  if(result.error) console.error(result.error); process.exit(result.status??1);
+ }
  const host = args[args.indexOf('/setup.mjs')+1];
  const result = spawnSync(process.execPath, [path.join(process.cwd(),'scripts','production-config.mjs'), host, '--stdout'], {encoding:'utf8'});
  if(result.status !== 0) {process.stderr.write(result.stderr); process.exit(result.status || 1);}
@@ -55,8 +68,10 @@ if (args[0] === 'run') {
  const file = path.join('producao','.env');
  if(!existsSync(file)) writeFileSync(file, result.stdout, {flag:'wx'});
 }
+if (args[0] === 'compose' && args[1] === 'version') {console.log('2.29.6');process.exit(0);}
 if (args[0] === 'compose') {
  const commands = args.slice(5); // --env-file FILE -f FILE
+ if (commands[0] === 'version') {console.log('2.29.6');}
  if (commands[0] === 'cp') {
   const destination=commands[2];
   if(commands[1].endsWith('root.crt')) writeFileSync(destination, 'CERTIFICADO DE TESTE');
@@ -322,6 +337,48 @@ try {
     assert.notEqual(result.status, 0);
     assert.ok(!existsSync(configPath));
     assert.equal(calls().length, 0);
+  });
+  test("assistente INSTALAR a partir de ZIP configura e inicia em uma unica chamada", () => {
+    const password = "Minha senha $HOME # ' \\ ação 123";
+    clearCalls();
+    const result = run("INSTALAR.cmd", {
+      wrapper: true,
+      input: `localhost\r\n58443\r\noperador@fatec.local\r\n${password}\r\n${password}\r\nn\r\ns\r\n\r\n`,
+    });
+    success(result);
+    assert.match(
+      result.stdout,
+      /INSTALACAO CONCLUIDA: https:\/\/localhost:58443/,
+    );
+    const env = readFileSync(configPath, "utf8");
+    assert.match(env, /BOOTSTRAP_EMAIL=operador@fatec.local/);
+    assert.equal(
+      Buffer.from(
+        env.match(/^BOOTSTRAP_PASSWORD_B64=(.*)$/m)[1],
+        "base64",
+      ).toString(),
+      password,
+    );
+    assert.ok(existsSync(path.join(root, "producao", "ACESSO.txt")));
+    assert.ok(existsSync(path.join(root, "producao", "host-ok")));
+    const next = run("INSTALAR.cmd", { wrapper: true, input: "\r\n" });
+    success(next);
+    assert.equal(readFileSync(configPath, "utf8"), env);
+  });
+  test("scripts de ajustes do Windows passam pelo parser PowerShell 5.1", () => {
+    for (const name of ["production-host.ps1", "production-install.ps1"]) {
+      const file = path.join(source, "scripts", name).replaceAll("'", "''");
+      const result = spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-Command",
+          `$errors=$null; $tokens=$null; $null=[System.Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$tokens,[ref]$errors); if($errors.Count){$errors;exit 1}`,
+        ],
+        { encoding: "utf8" },
+      );
+      success(result);
+    }
   });
   console.log(
     `${passed} testes Windows passaram. Docker simulado; Docker Desktop/WSL nao exercitados.`,

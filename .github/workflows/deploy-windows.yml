@@ -1,16 +1,22 @@
-name: Deploy Windows
+name: Deploy Windows e Linux
 on:
   push:
     paths:
       - "*.cmd"
+      - "instalar.sh"
+      - "producao.sh"
       - "scripts/production*"
-      - "scripts/test-production-windows.mjs"
+      - "scripts/test-production*.mjs"
+      - "infra/**"
       - ".github/workflows/deploy-windows.yml"
   pull_request:
     paths:
       - "*.cmd"
+      - "instalar.sh"
+      - "producao.sh"
       - "scripts/production*"
-      - "scripts/test-production-windows.mjs"
+      - "scripts/test-production*.mjs"
+      - "infra/**"
       - ".github/workflows/deploy-windows.yml"
   workflow_dispatch:
 permissions:
@@ -25,6 +31,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Testar iniciadores e tratamento de erros
+      - name: Testar perguntas e configuracao compartilhadas
+        shell: powershell
+        run: node scripts/test-production-setup.mjs
+      - name: Testar iniciadores e instalacao a partir de ZIP
         shell: powershell
         run: node scripts/test-production-windows.mjs
+  linux-install:
+    name: Linux ZIP e Docker real
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: bash -n instalar.sh producao.sh scripts/production-host-linux.sh
+      - run: node scripts/test-production-setup.mjs
+      - run: node scripts/test-production-linux.mjs
+      - run: node scripts/test-production-host-linux.mjs
+      - run: node scripts/test-production-compose.mjs
