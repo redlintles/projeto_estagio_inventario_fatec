@@ -6,12 +6,21 @@ import org.junit.Test
 
 class ApiAddressTest {
   @Test
-  fun normalizesLanAndHttpsWithoutChangingPath() {
-    assertEquals("http://192.168.1.10:3000/api", normalizeApiUrl(" http://192.168.1.10:3000/api/ "))
+  fun normalizesHttpsWithoutChangingPath() {
     assertEquals(
       "https://patrimonio.fatec.local/api",
       normalizeApiUrl("https://patrimonio.fatec.local/api"),
     )
+  }
+
+  @Test
+  fun permitsHttpOnlyInDebugBuilds() {
+    val address = " http://192.168.1.10:3000/api/ "
+    if (BuildConfig.DEBUG) {
+      assertEquals("http://192.168.1.10:3000/api", normalizeApiUrl(address))
+    } else {
+      assertThrows(IllegalArgumentException::class.java) { normalizeApiUrl(address) }
+    }
   }
 
   @Test

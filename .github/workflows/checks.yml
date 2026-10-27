@@ -38,5 +38,5 @@ jobs:
         with:
           packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew spotlessCheck :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --console=plain
+      - run: ./gradlew spotlessCheck :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease --console=plain
         working-directory: mobile
