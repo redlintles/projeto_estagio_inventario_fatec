@@ -107,6 +107,22 @@ O e-mail automático precisa de uma conta SMTP real. Sem ela, os e-mails permane
 
 ## 6. Rotina diária e reinício
 
+### Windows: ativar a inicialização automática uma vez
+
+1. Conclua a primeira instalação com **INICIAR-PRODUCAO.cmd** e confirme que o portal abre.
+2. No Docker Desktop, abra **Settings > General**, marque **Start Docker Desktop when you sign in to your computer** e aplique a alteração. [Referência do Docker](https://docs.docker.com/desktop/settings-and-maintenance/settings/).
+3. Na pasta do projeto, dê dois cliques em **ATIVAR-INICIO-AUTOMATICO.cmd**. Aguarde a confirmação e pressione uma tecla para fechar. Não precisa executar como administrador.
+4. Reinicie o computador e entre **na mesma conta do Windows** usada na ativação. Aguarde alguns minutos e abra o portal pelo endereço já configurado. Não é necessário abrir o iniciador manualmente.
+5. Se não abrir, confira `producao/inicializacao-automatica.log`. O processo espera até 10 minutos pelo Docker; se falhar, abra Docker Desktop e execute **INICIAR-PRODUCAO.cmd** para obter a mensagem de erro.
+
+O ativador cria um atalho na [pasta de inicialização da conta do Windows](https://support.microsoft.com/en-us/windows/experience/startup-boot/configure-startup-applications-in-windows). Ele espera o Docker ficar pronto e inicia as imagens já instaladas, sem compilar nem baixar uma nova versão. Atualizações continuam sendo feitas pelo iniciador manual. O atalho pode executar com uma janela minimizada; o registro da última tentativa é substituído a cada execução.
+
+**Isso ocorre após o login, não antes dele.** Docker Desktop e esta configuração dependem da sessão de usuário. Para voltar ao atendimento após falta de energia sem ninguém entrar na conta, use Linux com Docker Engine habilitado no boot ou uma infraestrutura de servidor preparada pela TI. O ativador não configura login automático nem salva a senha do Windows. Bloquear a tela é diferente de encerrar a sessão; para operação contínua, mantenha a conta conectada e desative a suspensão.
+
+Para cancelar, dê dois cliques em **DESATIVAR-INICIO-AUTOMATICO.cmd**, na mesma conta. Isso remove apenas o atalho de inicialização; não para os serviços nem apaga dados. Para parar naquele momento, use **PARAR-PRODUCAO.cmd**. Com a opção automática ativa, os serviços voltam no próximo login, mesmo se tiverem sido parados manualmente. Se mover a pasta do projeto, execute o ativador novamente para atualizar o caminho.
+
+### Comandos de operação
+
 | O que fazer           | Windows                                                                             | Linux, no terminal da pasta    |
 | --------------------- | ----------------------------------------------------------------------------------- | ------------------------------ |
 | Iniciar ou retomar    | Dois cliques em `INICIAR-PRODUCAO.cmd`                                              | `sudo bash producao.sh`        |
@@ -115,7 +131,7 @@ O e-mail automático precisa de uma conta SMTP real. Sem ela, os e-mails permane
 | Ver situação          | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\production.ps1 status` | `sudo bash producao.sh status` |
 | Ver mensagens de erro | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\production.ps1 logs`   | `sudo bash producao.sh logs`   |
 
-Após a mensagem de sucesso, pode fechar o terminal: o sistema continua rodando. Ao reiniciar Linux, o Docker e os serviços com reinício automático voltam, desde que não tenham sido parados manualmente. No Windows, entre na sessão e abra Docker Desktop. Em ambos, executar o iniciador é a forma explícita de retomar após parada manual. Depois de falta de energia, confira acesso antes de retomar o trabalho.
+Após a mensagem de sucesso, pode fechar o terminal: o sistema continua rodando. Ao reiniciar Linux, o Docker e os serviços com reinício automático voltam, desde que não tenham sido parados manualmente. No Windows, entre na sessão e abra Docker Desktop, ou use a opção automática descrita acima. Em ambos, executar o iniciador é a forma explícita de retomar após parada manual. Depois de falta de energia, confira acesso antes de retomar o trabalho.
 
 Use uma única pasta e execute um iniciador por vez. Não execute backup junto com atualização ou outra inicialização. Não use as opções **Delete**, **Clean/Purge data**, **Factory reset** ou remoção de volumes no Docker: elas podem apagar o banco e as fotos. Parar o sistema não apaga dados. Copiar apenas a pasta do código não copia o banco, que fica nos volumes do Docker.
 

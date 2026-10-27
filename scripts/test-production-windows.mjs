@@ -23,12 +23,18 @@ const bin = path.join(temporary, "mock docker");
 mkdirSync(root);
 mkdirSync(bin);
 mkdirSync(path.join(root, "scripts"));
-for (const name of ["production.ps1", "production-config.mjs"])
+for (const name of [
+  "production.ps1",
+  "production-config.mjs",
+  "production-autostart.ps1",
+])
   cpSync(path.join(source, "scripts", name), path.join(root, "scripts", name));
 for (const name of [
   "INICIAR-PRODUCAO.cmd",
   "PARAR-PRODUCAO.cmd",
   "BACKUP-PRODUCAO.cmd",
+  "ATIVAR-INICIO-AUTOMATICO.cmd",
+  "DESATIVAR-INICIO-AUTOMATICO.cmd",
 ])
   cpSync(path.join(source, name), path.join(root, name));
 const log = path.join(temporary, "docker-calls.jsonl");
@@ -84,7 +90,10 @@ const calls = () =>
         .map(JSON.parse)
     : [];
 const clearCalls = () => writeFileSync(log, "");
-function run(action, { fail = "", input = "", wrapper = false } = {}) {
+function run(
+  action,
+  { fail = "", input = "", wrapper = false, automatic = false } = {},
+) {
   const args = wrapper
     ? ["/d", "/c", action]
     : [
@@ -96,6 +105,7 @@ function run(action, { fail = "", input = "", wrapper = false } = {}) {
         "-Acao",
         action,
       ];
+  if (automatic) args.push("-Automatico", "-EsperaDockerSegundos", "1");
   const result = spawnSync(wrapper ? "cmd.exe" : "powershell.exe", args, {
     cwd: root,
     env: { ...environment, MOCK_DOCKER_FAIL: fail },
@@ -234,6 +244,63 @@ try {
       ),
     );
   });
+  test("inicio automatico usa imagens existentes e registra a tentativa", () => {
+    clearCalls();
+    success(run("iniciar", { automatic: true }));
+    const up = calls().find((args) => args.includes("up"));
+    assert.ok(up.includes("--no-build") && up.includes("never"));
+    assert.ok(!up.includes("--build"));
+    assert.ok(
+      existsSync(path.join(root, "producao", "inicializacao-automatica.log")),
+    );
+  });
+  test("inicio automatico espera e informa timeout do Docker", () => {
+    clearCalls();
+    const result = run("iniciar", { automatic: true, fail: "info --format" });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout, /Docker nao ficou pronto/);
+    assert.ok(calls().length >= 2);
+    assert.ok(!calls().some((args) => args.includes("up")));
+  });
+  test("atalho automatico aponta para o projeto e pode ser removido", () => {
+    const getShortcut = String.raw`
+      $path = Join-Path ([Environment]::GetFolderPath('Startup')) 'Fatec Patrimonio.lnk'
+      if (-not (Test-Path $path)) { throw 'Atalho nao encontrado' }
+      $link = (New-Object -ComObject WScript.Shell).CreateShortcut($path)
+      if ($link.Arguments -notlike '*-Automatico*') { throw 'Modo automatico ausente' }
+      if ($link.Arguments -notlike '*projeto com espacos*') { throw 'Caminho incorreto' }
+      if ($link.WindowStyle -ne 7) { throw 'Janela nao minimizada' }
+      Write-Output $link.Arguments
+    `;
+    try {
+      success(
+        run("ATIVAR-INICIO-AUTOMATICO.cmd", { wrapper: true, input: "\r\n" }),
+      );
+      const result = spawnSync(
+        "powershell.exe",
+        ["-NoProfile", "-Command", getShortcut],
+        { encoding: "utf8" },
+      );
+      success(result);
+    } finally {
+      success(
+        run("DESATIVAR-INICIO-AUTOMATICO.cmd", {
+          wrapper: true,
+          input: "\r\n",
+        }),
+      );
+    }
+    const result = spawnSync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-Command",
+        "if (Test-Path (Join-Path ([Environment]::GetFolderPath('Startup')) 'Fatec Patrimonio.lnk')) { exit 1 }",
+      ],
+      { encoding: "utf8" },
+    );
+    success(result);
+  });
   test("endereco invalido falha sem criar configuracao", () => {
     rmSync(configPath);
     clearCalls();
@@ -248,6 +315,13 @@ try {
     assert.notEqual(run("parar").status, 0);
     assert.ok(!existsSync(configPath));
     assert.ok(!calls().some((args) => args[0] === "run"));
+  });
+  test("inicio automatico sem configuracao falha sem pedir endereco", () => {
+    clearCalls();
+    const result = run("iniciar", { automatic: true });
+    assert.notEqual(result.status, 0);
+    assert.ok(!existsSync(configPath));
+    assert.equal(calls().length, 0);
   });
   console.log(
     `${passed} testes Windows passaram. Docker simulado; Docker Desktop/WSL nao exercitados.`,
