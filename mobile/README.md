@@ -66,3 +66,17 @@ O Moto G52 conectado por USB recebeu essa atualização e confirmou acesso à AP
 ## Inventário guiado — versão 1.3
 
 A versão 1.3.0 (versionCode 5) mantém a lista de bens esperados e a sessão atual no aparelho, atualiza o progresso ao registrar resultados e aceita Não encontrei. Conclusão e cancelamento são comandos duráveis da fila; a sala só é liberada após confirmação do servidor. Veja o [guia de inventário Android](../docs/inventario-android.md).
+
+## APK de produção na raiz
+
+O arquivo `../patrimonio-fatec-1.3.0-release.apk` é um APK release assinado com a chave exclusiva deste projeto. Ele exige HTTPS, não permite depuração e é compatível com Android 8 ou superior. O APK debug permanece separado. **Assinaturas diferentes impedem atualizar diretamente o debug com o release:** sincronize e confira todas as pendências antes de qualquer migração, sem apagar dados de coleta não enviados.
+
+Para quem mantém o código, gere as próximas entregas a partir da raiz com Node 24, JDK 17 e SDK Android configurados:
+
+```sh
+node scripts/android-release.mjs
+```
+
+O script executa build, testes unitários e lint de release; reutiliza a chave privada em `producao/assinatura-android`; assina, verifica o manifesto/assinatura e coloca o APK na raiz. Na primeira execução cria uma chave exclusiva se nenhuma existir. Se somente parte dos arquivos da chave estiver presente, interrompe a geração para impedir uma troca acidental de identidade. Nas próximas versões, incremente `versionCode` e `versionName` no Gradle.
+
+**Faça backup externo protegido da pasta inteira `producao/assinatura-android`.** O arquivo PKCS12 e `chave.json` são necessários para as próximas assinaturas. Não os versione, não os distribua com o APK e não os envie em chamados. A rotina de backup do servidor não inclui essa pasta. Gerar outra chave não substitui a original nos celulares já instalados. A instituição deve custodiar essa chave ao assumir a distribuição do aplicativo; não se trata de uma publicação na Play Store.

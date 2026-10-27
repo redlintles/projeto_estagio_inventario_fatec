@@ -1,6 +1,6 @@
 > **Máquina nova / Download ZIP:** leia `LEIA-ME-PRIMEIRO.txt`. Instale o Docker manualmente, extraia o ZIP e execute **INSTALAR.cmd** no Windows ou **bash instalar.sh** no Linux. O assistente pergunta os dados necessários, prepara os serviços, HTTPS e início automático. Mais detalhes no [guia de produção](docs/PRODUCAO.md).
 
-> **Android para testes:** o arquivo [patrimonio-fatec-1.3.0-debug.apk](patrimonio-fatec-1.3.0-debug.apk) fica na raiz e acompanha o Download ZIP. É um APK de testes, assinado com a chave de debug; a distribuição de produção exige assinatura institucional.
+> **Android:** o APK de produção [patrimonio-fatec-1.3.0-release.apk](patrimonio-fatec-1.3.0-release.apk) fica na raiz e acompanha o Download ZIP. Ele é assinado com a chave exclusiva do projeto e exige HTTPS. O [APK debug](patrimonio-fatec-1.3.0-debug.apk) continua disponível para testes. As duas assinaturas são diferentes; sincronize as pendências antes de migrar de debug para produção.
 
 # Gestão Patrimonial Fatec
 

@@ -103,12 +103,28 @@ No Windows, a regra criada vale para redes Privadas e de Dominio, na sub-rede lo
 Se a rede estiver como Publica ou tiver bloqueios institucionais, peca ajuda ao
 responsavel pela rede. Firewalls personalizados tambem podem precisar de ajuste.
 
-ONDE ESTA O APK ANDROID?
-Na raiz da pasta extraida: patrimonio-fatec-1.3.0-debug.apk. Ele acompanha o ZIP
-do GitHub e pode ser transferido para um celular Android 8 ou superior. E uma
-versao de testes, assinada com chave de debug. A versao de producao deve receber
-assinatura institucional. Nao desinstale nem limpe os dados de uma versao anterior
-se houver coletas pendentes de envio.
+ONDE ESTA O APK ANDROID DE PRODUCAO?
+Na raiz da pasta extraida: patrimonio-fatec-1.3.0-release.apk.
+Ele acompanha o ZIP do GitHub e funciona no Android 8 ou superior.
+Transfira o arquivo para o celular e abra-o para instalar. Use o arquivo release
+para producao; o arquivo com debug no nome e somente para testes.
+O APK release e assinado com uma chave exclusiva do projeto, nao permite depuracao
+e exige uma conexao HTTPS confiavel com o servidor.
+
+POSSO ATUALIZAR O APK DEBUG COM O RELEASE?
+Nao diretamente: as assinaturas sao diferentes. Se houver um APK de testes
+instalado, sincronize todas as pendencias e confira os registros no portal antes
+de pedir ao suporte para migrar a instalacao. Nao desinstale nem limpe dados com
+coletas pendentes: elas podem ser perdidas. As proximas atualizacoes da versao
+release deverao reutilizar a mesma chave de producao.
+
+QUEM GUARDA A CHAVE DO APLICATIVO?
+A pessoa responsavel pela compilacao deve guardar uma copia protegida da pasta
+producao/assinatura-android, que contem a chave e suas credenciais. Essa pasta nao
+acompanha o GitHub nem o Download ZIP. Ela tambem nao faz parte do backup comum
+do banco e das fotos: precisa de um backup separado. Perder a chave impede as
+atualizacoes normais dos celulares que usam essa assinatura. Nao compartilhe essa
+pasta com usuarios nem envie as credenciais em chamados.
 
 E OS CELULARES ANDROID?
 O aplicativo de producao exige certificado confiavel. Instalar um certificado

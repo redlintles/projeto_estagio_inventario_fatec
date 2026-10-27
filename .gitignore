@@ -34,3 +34,11 @@ producao/
 
 # APK de testes entregue na raiz para acompanhar o Download ZIP.
 !/patrimonio-fatec-1.3.0-debug.apk
+
+# APK de producao assinado; chaves privadas nunca entram no repositorio.
+!/patrimonio-fatec-1.3.0-release.apk
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.idsig
