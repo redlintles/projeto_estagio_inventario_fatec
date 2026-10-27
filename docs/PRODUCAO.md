@@ -31,42 +31,36 @@ A máquina deve ficar ligada, sem suspensão automática. Configure essa opção
 2. Quando oferecido, escolha o uso de WSL 2. Aceite a autorização de administrador. Reinicie o computador se solicitado.
 3. Se aparecer a mensagem de que é necessário instalar/atualizar o WSL, abra o menu Iniciar, procure **Terminal**, clique com o botão direito e escolha **Executar como administrador**. Digite `wsl --install`, pressione Enter e reinicie. Se o Docker pedir atualização, use `wsl --update` no mesmo terminal. Siga as mensagens do instalador.
 4. Abra **Docker Desktop** pelo menu Iniciar e aguarde o mecanismo ficar em execução. Use contêineres Linux. Se ele informar que a virtualização está desativada, peça à pessoa responsável pelo computador para habilitá-la; essa opção depende do fabricante.
-5. Em **Settings > General**, habilite a opção de iniciar Docker Desktop ao entrar no Windows. A tradução/nome da opção pode variar. O Docker Desktop depende de uma sessão de usuário: após reiniciar, entre no Windows e aguarde o Docker abrir. Para servidor que precise funcionar sem login, prefira Linux.
-6. Volte à pasta do projeto. Dê dois cliques em **INICIAR-PRODUCAO.cmd**. Se o Windows ocultar extensões, o nome pode aparecer apenas como **INICIAR-PRODUCAO**. É o arquivo do tipo script de comandos, não uma pasta.
-7. Na primeira execução, digite o IP reservado ou nome fornecido pelo responsável da rede e pressione Enter. Não escreva `https://`, barras nem número de porta.
-8. Aguarde a mensagem **Servicos iniciados**. Não feche a janela durante os downloads. A janela fica aberta para leitura; pressione uma tecla ao terminar.
+5. O Docker Desktop depende de uma sessão de usuário. Se escolher início automático no assistente, ele criará um atalho que abre o Docker e aguarda ficar pronto após entrar nessa conta. Para servidor que precise funcionar sem login, prefira Linux.
+6. Volte à pasta do projeto. Dê dois cliques em **INSTALAR.cmd**. Se o Windows ocultar extensões, o nome pode aparecer apenas como **INSTALAR**. É o arquivo do tipo script de comandos, não uma pasta.
+7. Responda às perguntas sobre endereço, porta, e-mail de acesso, senha e início automático. Enter aceita cada sugestão. Se escolher uma senha própria, repita-a quando solicitado. Confirme a preparação e autorize os ajustes do Windows quando ele pedir.
+8. Aguarde a mensagem **INSTALACAO CONCLUIDA**. O navegador será aberto no endereço configurado. Consulte `producao/ACESSO.txt` para entrar. Não feche a janela durante os downloads. A janela fica aberta para leitura; pressione uma tecla ao terminar.
 
 Alternativa pelo terminal aberto na pasta:
 
 ```bat
-.\INICIAR-PRODUCAO.cmd
+.\INSTALAR.cmd
 ```
 
 Os scripts não alteram permanentemente a política do PowerShell. A execução é liberada somente para esse processo local. Políticas institucionais podem impedir scripts; nesse caso o administrador da máquina precisa autorizar os arquivos entregues.
 
 ## 3B. Linux — preparar uma vez
 
-No Ubuntu ou Debian, abra a pasta do projeto no gerenciador de arquivos. Clique com o botão direito em um espaço vazio e escolha **Abrir no terminal** (o nome pode variar). Cole e execute:
+Instale Docker Engine e o plugin Compose manualmente pelo [guia da distribuição](https://docs.docker.com/engine/install/). O projeto mantém `scripts/instalar-docker-linux.sh` como ferramenta opcional de suporte a Ubuntu/Debian, mas o assistente não baixa nem instala Docker por conta própria.
+
+Abra a pasta extraída do projeto no gerenciador de arquivos. Clique com o botão direito em um espaço vazio e escolha **Abrir no terminal**. Execute:
 
 ```bash
-bash scripts/instalar-docker-linux.sh
+bash instalar.sh
 ```
 
-O instalador usa o repositório oficial do Docker. Ele pede a senha do seu usuário para instalar programas; o terminal não mostra caracteres enquanto você digita a senha. Isso é normal. Ele atende Ubuntu/Debian e não remove um Docker ou runtime já existente. Se detectar uma instalação anterior incompleta, peça ao responsável para conferir `sudo docker compose version` antes de continuar. Fonte do procedimento: [instalação oficial no Ubuntu](https://docs.docker.com/engine/install/ubuntu/) e [Debian](https://docs.docker.com/engine/install/debian/).
+Responda às perguntas ou pressione Enter para aceitar as sugestões. O script pede a senha de administrador quando precisar acessar/iniciar Docker, instalar o certificado ou preparar o serviço de inicialização. O terminal não mostra caracteres enquanto você digita a senha do `sudo`; isso é normal.
 
-Quando concluir, execute na mesma pasta:
-
-```bash
-sudo bash producao.sh
-```
-
-Informe o IP reservado ou nome do servidor, sem `https://`, barras ou porta. Aguarde **Serviços iniciados**. Nas próximas vezes, o mesmo comando inicia tudo e preserva a configuração e os dados. O `sudo` evita exigir a inclusão do usuário no grupo privilegiado do Docker. Se seu usuário já possui acesso autorizado ao Docker, pode usar `bash producao.sh`.
-
-Em outras distribuições, instale [Docker Engine](https://docs.docker.com/engine/install/) e o [plugin Compose](https://docs.docker.com/compose/install/linux/), habilite o serviço Docker e use o mesmo comando acima. Não existe um instalador seguro único para todas as distribuições Linux.
+Aguarde **INSTALAÇÃO CONCLUÍDA** e abra o endereço informado. Usuário e senha inicial ficam no arquivo privado `producao/ACESSO.txt`. O mesmo comando inicia novamente com as respostas preservadas. O início automático ao ligar é configurado em Linux com Docker Engine local e systemd. Em ambientes sem esse suporte, o assistente oferece **não** como padrão e informa a limitação.
 
 ## 4. HTTPS e primeiro acesso
 
-O endereço será `https://IP_RESERVADO` ou `https://NOME_FORNECIDO`. Abra exatamente o endereço informado pelo script. No próprio servidor também use esse endereço, e não `localhost`, se tiver configurado um IP.
+O endereço será `https://IP_RESERVADO` ou `https://NOME_FORNECIDO`, acrescido de `:PORTA` se você escolher outra porta além de 443. O assistente já instala a confiança do certificado no computador servidor. As instruções manuais abaixo servem para os outros computadores ou para suporte. Abra exatamente o endereço informado pelo script. No próprio servidor também use esse endereço, e não `localhost`, se tiver configurado um IP.
 
 Por padrão, o projeto cria um certificado local para criptografar a conexão. O navegador só confiará nele depois que a instituição instalar o certificado nas máquinas clientes. O script copia o certificado público para `producao/certificado-local.crt`. Compartilhe **somente esse arquivo público** com quem configura os computadores. Nunca compartilhe a pasta `caddy` dos backups: ela contém a chave privada da autoridade certificadora.
 
@@ -98,18 +92,19 @@ A API do celular será o mesmo endereço do portal acrescido de `/api`, por exem
 
 ## 5. Entrar pela primeira vez
 
-1. Abra a pasta **producao** criada ao lado do iniciador. Ela contém um arquivo **.env**. No Linux, `Ctrl+H` mostra arquivos ocultos.
-2. Abra `.env` com Bloco de Notas/editor de texto, sem alterar nada. Se necessário, use **Abrir com**. Não renomeie para `.env.txt`.
-3. O login é o e-mail escolhido no assistente; o padrão é `admin@fatec.local`. No assistente novo, use `producao/ACESSO.txt`. Nas instalações antigas, a senha é o texto à direita de `BOOTSTRAP_PASSWORD=`. Copie apenas a senha, sem o nome da variável nem o sinal `=`.
-4. Acesse o portal com esse login e senha. Cadastre as contas nominais e permissões de quem usará o sistema na gestão de usuários. Atualize a senha administrativa pelo fluxo de gestão disponível e guarde a senha atual em local seguro. Executar o iniciador novamente não redefine uma conta existente.
-5. Guarde `.env` protegido: ele também contém as senhas internas do banco e o segredo de sessão. Não envie em e-mails, chamados ou capturas de tela. No Windows, mantenha a pasta em uma conta protegida e restrinja a leitura nas propriedades de segurança à conta operadora e aos administradores. No Linux os scripts criam os arquivos privados.
-6. Antes de importar dados reais, entre a partir de outro computador, cadastre um registro de teste, envie uma foto e confira o resultado. Se houver Android, teste conexão, login, foto e sincronização offline usando o APK release. Consulte [operação Android](operacao-lan.md).
+1. Abra o arquivo **producao/ACESSO.txt** com o Bloco de Notas ou editor de texto. Ele contém o endereço completo, o usuário escolhido e a senha inicial. Não compartilhe esse arquivo.
+2. Abra o endereço no navegador e entre com esses dados. O padrão de usuário é `admin@fatec.local`, mas vale o e-mail escolhido no assistente.
+3. Cadastre as contas nominais e permissões na gestão de usuários. Se mudar a senha no portal, o arquivo local não será atualizado. Executar o assistente novamente não redefine uma conta existente.
+4. Guarde a pasta `producao` protegida. Ela contém as credenciais internas e os arquivos de acesso. O assistente restringe permissões de leitura; não envie essa pasta em e-mails, chamados ou capturas de tela.
+5. Antes de importar dados reais, teste consulta, cadastro e foto. Para outros computadores e Android, valide endereço de rede e confiança do certificado nos clientes conforme seção 4.
 
 O e-mail automático precisa de uma conta SMTP real. Sem ela, os e-mails permanecem pendentes; Mailpit não faz parte da produção. Peça ao responsável pelo e-mail os valores de `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` e `SMTP_FROM`; eles ficam em `producao/.env`. Depois, execute o iniciador novamente e configure destinatários na tela Parâmetros. Não invente credenciais. Valores contendo `$`, `#` ou espaços precisam da sintaxe de aspas do arquivo de ambiente do Compose; a TI deve preparar esses valores.
 
 ## 6. Rotina diária e reinício
 
 ### Windows: ativar a inicialização automática uma vez
+
+Se você usou **INSTALAR.cmd**, essa opção já foi tratada pela pergunta do assistente. Os passos abaixo são uma alternativa de manutenção para instalações antigas.
 
 1. Conclua a primeira instalação com **INICIAR-PRODUCAO.cmd** e confirme que o portal abre.
 2. No Docker Desktop, abra **Settings > General**, marque **Start Docker Desktop when you sign in to your computer** e aplique a alteração. [Referência do Docker](https://docs.docker.com/desktop/settings-and-maintenance/settings/).
@@ -209,4 +204,8 @@ No `--volume`, use caminho absoluto e envolva o argumento inteiro em aspas se co
 
 Foi executado um ambiente Docker isolado em Linux: compilação das imagens, inicialização em banco vazio, migrations, criação do administrador, login pela API, acesso HTTPS com validação do certificado local e reinicialização sem trocar as credenciais. Também foram verificados geração da configuração, backup do volume de fotos, cópia da autoridade HTTPS e restauração do dump em banco vazio com a conta administrativa preservada. O ambiente temporário foi removido depois do teste, sem alterar o ambiente de demonstração.
 
-Os scripts Bash passaram pela verificação de sintaxe e o Compose pela validação de configuração. O instalador do Docker não foi executado em uma máquina nova durante essa validação; a máquina de teste já tinha Docker. O iniciador PowerShell e os três arquivos de dois cliques passaram por 12 testes em Windows Server 2022 no GitHub Actions, com Windows PowerShell 5.1 e CMD: primeira inicialização, caminhos com espaços, preservação de credenciais, parada, status/logs, cópia binária de backup e tratamento de falhas. As chamadas ao Docker foram simuladas nesse teste; ele não valida a instalação completa com Docker Desktop/WSL 2 no Windows 11. Resultado: [execução aprovada dos testes Windows](https://github.com/redlintles/projeto_estagio_inventario_fatec/actions/runs/40372026812). O teste pode ser repetido em Windows com `node scripts/test-production-windows.mjs` (Node 24 apenas para desenvolvimento/testes). Conectividade da rede definitiva, confiança HTTPS nos dispositivos, SMTP e capacidade com dados reais devem ser conferidos na instalação institucional.
+O assistente compartilhado passou por nove testes de perguntas, padrões, senha especial, validação, cancelamento, retomada e preservação de configurações antigas. A suíte Windows também executou o `INSTALAR.cmd` real com PowerShell 5.1 a partir de uma pasta com espaços, simulando somente Docker e os ajustes privilegiados. O Linux foi testado a partir de uma pasta sem Git e sem dependências do projeto instaladas. A geração do serviço de boot, a instalação de certificado e as chamadas de firewall/sudo foram verificadas com comandos administrativos simulados. O instalador completo de Docker Desktop/WSL 2 e os diálogos UAC não são exercitados na CI.
+
+O teste real de contêineres confirmou conta e senha escolhidas (com símbolos e acentos), porta personalizada, HTTPS com certificado validado, CORS, banco/API sem portas próprias expostas, política sem início automático e preservação do login após reiniciar. Também foi conferido manualmente o terminal interativo do Docker: a senha não aparece enquanto é digitada. Resultados: [deploy Windows e Linux aprovado](https://github.com/redlintles/projeto_estagio_inventario_fatec/actions/runs/40573574040) e [checks gerais aprovados](https://github.com/redlintles/projeto_estagio_inventario_fatec/actions/runs/40573574000).
+
+A instalação manual do Docker numa máquina vazia, a conectividade da rede definitiva, a confiança HTTPS nos demais dispositivos, SMTP e capacidade com dados reais precisam ser conferidos na instalação institucional.
