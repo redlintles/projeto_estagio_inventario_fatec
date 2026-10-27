@@ -23,3 +23,6 @@ entregaveis
 **/*.bak
 
 producao
+
+# APKs de entrega nao fazem parte das imagens do servidor.
+**/*.apk

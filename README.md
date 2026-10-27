@@ -1,5 +1,7 @@
 > **Máquina nova / Download ZIP:** leia `LEIA-ME-PRIMEIRO.txt`. Instale o Docker manualmente, extraia o ZIP e execute **INSTALAR.cmd** no Windows ou **bash instalar.sh** no Linux. O assistente pergunta os dados necessários, prepara os serviços, HTTPS e início automático. Mais detalhes no [guia de produção](docs/PRODUCAO.md).
 
+> **Android para testes:** o arquivo [patrimonio-fatec-1.3.0-debug.apk](patrimonio-fatec-1.3.0-debug.apk) fica na raiz e acompanha o Download ZIP. É um APK de testes, assinado com a chave de debug; a distribuição de produção exige assinatura institucional.
+
 # Gestão Patrimonial Fatec
 
 Sistema interno da unidade de ensino para importar a base patrimonial, conferir ativos por localização, registrar divergências e acompanhar disponibilização, reserva, transporte, transferência e baixa. O portal atende à gestão; o aplicativo Android atende à conferência física, inclusive em salas sem internet.

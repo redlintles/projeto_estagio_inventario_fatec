@@ -31,3 +31,6 @@ local.properties
 
 # Configuração, certificados e backups da instalação de produção.
 producao/
+
+# APK de testes entregue na raiz para acompanhar o Download ZIP.
+!/patrimonio-fatec-1.3.0-debug.apk
