@@ -22,7 +22,7 @@ A API e o download de fotos exigem token. Somente administradores gerenciam cont
 
 ## O que ainda depende da Fatec
 
-- **HTTPS obrigatório para dados reais em trânsito.** O modo de demonstração por HTTP não deve receber a base sensível na rede compartilhada. Implantar proxy HTTPS, nome estável e certificado confiável nos aparelhos. Não ignorar erros de certificado. A release Android já recusa HTTP.
+- **Acesso HTTP na LAN.** O portal e o APK release 1.3.1 funcionam sem certificados. HTTP não criptografa o tráfego.
 - **Proteção do servidor e backups.** Banco, fotos e snapshots locais não foram convertidos em um cofre criptografado pela aplicação. Configurar criptografia de disco e backups, contas do sistema, permissões e acesso físico; restringir PostgreSQL ao host/rede Docker. Testar restauração e guardar cópias em local protegido.
 - **Proteção dos celulares.** A fila SQLite e fotos offline usam o armazenamento privado do aplicativo; isso não equivale a uma garantia de criptografia própria desses arquivos. Exigir bloqueio de tela, aparelhos atualizados, sem root, armazenamento criptografado e procedimento para perda/roubo. Não apagar pendências antes da sincronização. O token usa Android Keystore; backups do app estão desabilitados.
 - **Credenciais e autorização.** Substituir a conta e senha da demonstração antes do uso institucional; definir contas individuais e privilégio mínimo. Logout online no portal e no Android revoga todas as sessões da mesma conta; saída Android sem conexão limpa o token local e informa que não houve revogação remota; uma sessão já carregada offline num celular não pode ser apagada remotamente por esta aplicação.

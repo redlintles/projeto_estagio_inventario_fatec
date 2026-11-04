@@ -13,7 +13,14 @@ if (
 const secret = (n) => randomBytes(n).toString("hex");
 const config = [
   `SITE_HOST=${host}`,
-  "TLS_MODE=internal",
+  "TLS_MODE=disabled",
+  "SITE_SCHEME=http",
+  "HTTP_PORT=8080",
+  "SITE_PORT_SUFFIX=:8080",
+  "GATEWAY_ADDRESS=:80",
+  "GATEWAY_PORT=80",
+  "TLS_DIRECTIVE=encode gzip",
+  "BIND_ADDRESS=0.0.0.0",
   `POSTGRES_PASSWORD=${secret(24)}`,
   `JWT_SECRET=${secret(48)}`,
   "BOOTSTRAP_EMAIL=admin@fatec.local",

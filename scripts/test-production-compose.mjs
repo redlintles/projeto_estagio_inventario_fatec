@@ -1,11 +1,11 @@
 // Prova de instalacao real: contêineres e volumes exclusivos, descartados no final.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import net from "node:net";
-import https from "node:https";
+import http from "node:http";
 import { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { setup } from "./production-setup.mjs";
@@ -50,19 +50,17 @@ function docker(args) {
     );
   return result.stdout.trim();
 }
-let ca;
 function request(url, body) {
   return new Promise((resolve, reject) => {
-    const req = https.request(
+    const req = http.request(
       {
         hostname: "localhost",
         agent: false,
         port,
         path: url,
-        ca,
         method: body ? "POST" : "GET",
         headers: {
-          Origin: `https://localhost:${port}`,
+          Origin: `http://localhost:${port}`,
           ...(body ? { "Content-Type": "application/json" } : {}),
         },
       },
@@ -75,7 +73,7 @@ function request(url, body) {
       },
     );
     req.on("error", reject);
-    req.setTimeout(15000, () => req.destroy(Error("Timeout HTTPS")));
+    req.setTimeout(15000, () => req.destroy(Error("Timeout HTTP")));
     if (body) req.write(JSON.stringify(body));
     req.end();
   });
@@ -90,13 +88,6 @@ try {
     "--wait-timeout",
     "300",
   ]);
-  docker([
-    ...compose,
-    "cp",
-    "gateway:/data/caddy/pki/authorities/local/root.crt",
-    path.join(directory, "root.crt"),
-  ]);
-  ca = readFileSync(path.join(directory, "root.crt"));
   const health = await request("/api/health");
   assert.equal(health.status, 200);
   assert.equal(JSON.parse(health.body).status, "ok");
@@ -110,7 +101,7 @@ try {
   );
   assert.equal(
     response.headers["access-control-allow-origin"],
-    `https://localhost:${port}`,
+    `http://localhost:${port}`,
   );
   for (const service of ["database", "backend", "web"]) {
     const id = docker([...compose, "ps", "-q", service]);
@@ -135,7 +126,7 @@ try {
     "Login deve aceitar as credenciais escolhidas",
   );
   console.log(
-    "PASS Docker real: migrations, conta/senha personalizada com simbolos, porta personalizada, HTTPS validado, CORS, portas privadas, autostart desativado e dados preservados apos reiniciar.",
+    "PASS Docker real: migrations, conta/senha personalizada com simbolos, porta personalizada, HTTP sem certificado, CORS, portas privadas, autostart desativado e dados preservados apos reiniciar.",
   );
 } finally {
   docker([...compose, "down", "--volumes"]);

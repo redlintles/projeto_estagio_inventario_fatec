@@ -2,7 +2,7 @@
 
 Abra este diretório no Android Studio. JDK 17, SDK 35, Android 8 ou superior. O Gradle Wrapper está versionado; local.properties contém o SDK de cada máquina e não deve ser versionado.
 
-`./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug` gera APK, testes e análise. URL da API é configurada no login. Em release, use HTTPS e configure assinatura institucional fora do repositório.
+`./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug` gera APK, testes e análise. URL da API é configurada no login. Debug e release aceitam HTTP na LAN e HTTPS. A assinatura do APK é gerenciada na compilação, fora do repositório.
 
 A câmera usa modelo embarcado de barras. Antes de ficar offline, faça login, atualize a base e prepare o inventário. SQLite guarda a fila durável; WorkManager reenvia sem descartar registros. Nunca apague dados locais antes de resolver as pendências. Consulte ../docs/fluxos.md e ../docs/testes.md.
 
@@ -69,7 +69,7 @@ A versão 1.3.0 (versionCode 5) mantém a lista de bens esperados e a sessão at
 
 ## APK de produção na raiz
 
-O arquivo `../patrimonio-fatec-1.3.0-release.apk` é um APK release assinado com a chave exclusiva deste projeto. Ele exige HTTPS, não permite depuração e é compatível com Android 8 ou superior. O APK debug permanece separado. **Assinaturas diferentes impedem atualizar diretamente o debug com o release:** sincronize e confira todas as pendências antes de qualquer migração, sem apagar dados de coleta não enviados.
+O arquivo `../patrimonio-fatec-1.3.1-release.apk` é um APK release assinado com a chave exclusiva deste projeto. Ele permite HTTP na LAN, sem certificado, não permite depuração e é compatível com Android 8 ou superior. O APK debug permanece separado. **Assinaturas diferentes impedem atualizar diretamente o debug com o release:** sincronize e confira todas as pendências antes de qualquer migração, sem apagar dados de coleta não enviados.
 
 Para quem mantém o código, gere as próximas entregas a partir da raiz com Node 24, JDK 17 e SDK Android configurados:
 
@@ -80,3 +80,5 @@ node scripts/android-release.mjs
 O script executa build, testes unitários e lint de release; reutiliza a chave privada em `producao/assinatura-android`; assina, verifica o manifesto/assinatura e coloca o APK na raiz. Na primeira execução cria uma chave exclusiva se nenhuma existir. Se somente parte dos arquivos da chave estiver presente, interrompe a geração para impedir uma troca acidental de identidade. Nas próximas versões, incremente `versionCode` e `versionName` no Gradle.
 
 **Faça backup externo protegido da pasta inteira `producao/assinatura-android`.** O arquivo PKCS12 e `chave.json` são necessários para as próximas assinaturas. Não os versione, não os distribua com o APK e não os envie em chamados. A rotina de backup do servidor não inclui essa pasta. Gerar outra chave não substitui a original nos celulares já instalados. A instituição deve custodiar essa chave ao assumir a distribuição do aplicativo; não se trata de uma publicação na Play Store.
+
+A versão 1.3.1 (versionCode 6) remove a exigência de HTTPS também na release. Use `http://IP_DO_SERVIDOR:8080/api` na instalação LAN. Atualize a release anterior com o novo APK, sem desinstalar, para preservar sessão e pendências.

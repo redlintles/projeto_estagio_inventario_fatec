@@ -1,3 +1,11 @@
+> **Atualização — acesso simples na LAN:** `INSTALAR.cmd` e `bash instalar.sh`
+> agora configuram HTTP, normalmente em `http://IP:8080`, sem certificado.
+> Execute novamente na mesma pasta para converter instalações antigas preservando
+> dados e credenciais. O endereço atualizado fica em `producao/ACESSO.txt`.
+> A configuração antiga fica em `.env.before-http`. Use o IP do servidor nos
+> outros PCs e permita a porta escolhida no firewall. A regra do Windows atende
+> redes Privadas/Domínio. HTTP não criptografa o tráfego. O APK release 1.3.1 também aceita HTTP sem certificado.
+
 # Colocar o sistema em funcionamento — Windows e Linux
 
 **Entrada recomendada para quem não é técnico:** leia `LEIA-ME-PRIMEIRO.txt`, instale Docker manualmente, extraia o ZIP e use `INSTALAR.cmd` (Windows) ou `bash instalar.sh` (Linux). O assistente faz as perguntas e executa toda a preparação. As seções abaixo também documentam os comandos de manutenção para suporte.
@@ -6,14 +14,14 @@ Este é o guia de produção. O portal, a API (parte que processa os dados) e o 
 
 ## 1. Antes de começar
 
-Separe um computador dedicado, ligado à energia e à rede por cabo se possível. Como ponto de partida, reserve 4 núcleos, 8 GB de memória e 30 GB livres, aumentando o espaço conforme fotos e backups. Isso é uma referência inicial, não uma capacidade medida. A instalação precisa de internet para baixar programas e montar o sistema; os downloads podem demorar. Depois, o uso local não depende de internet, exceto serviços externos como e-mail e renovação de certificados públicos.
+Separe um computador dedicado, ligado à energia e à rede por cabo se possível. Como ponto de partida, reserve 4 núcleos, 8 GB de memória e 30 GB livres, aumentando o espaço conforme fotos e backups. Isso é uma referência inicial, não uma capacidade medida. A instalação precisa de internet para baixar programas e montar o sistema; os downloads podem demorar. Depois, o uso local não depende de internet, exceto serviços externos como e-mail.
 
 Use Windows 11 compatível com Docker Desktop e WSL 2, ou uma versão de Ubuntu/Debian de 64 bits ainda suportada pelo Docker. Outros Linux podem usar o mesmo `producao.sh`, mas precisam instalar Docker Engine e Compose pelo procedimento da própria distribuição. Windows Server não é atendido pelo Docker Desktop: prefira Linux nesse caso. Consulte os requisitos atuais do fabricante antes de escolher a máquina:
 
 - [Docker Desktop para Windows](https://docs.docker.com/desktop/setup/install/windows-install/).
 - [Docker Engine para Linux](https://docs.docker.com/engine/install/).
 
-Peça ao responsável pela rede uma única preparação: reservar um IP para esse computador (por exemplo, `192.168.1.50`), permitir que os computadores e celulares alcancem esse endereço e liberar a porta HTTPS escolhida (443 por padrão) somente para a rede autorizada. O IP do exemplo é ilustrativo: use o endereço fornecido por ele. Não abra portas no roteador para a internet. Apenas a porta HTTPS é publicada; banco e API não têm portas próprias expostas.
+Peça ao responsável pela rede uma única preparação: reservar um IP para esse computador (por exemplo, `192.168.1.50`), permitir que os computadores e celulares alcancem esse endereço e liberar a porta HTTP escolhida (8080 por padrão) somente para a rede autorizada. O IP do exemplo é ilustrativo: use o endereço fornecido por ele. Não abra portas no roteador para a internet. Apenas a porta HTTP é publicada; banco e API não têm portas próprias expostas.
 
 A máquina deve ficar ligada, sem suspensão automática. Configure essa opção nas configurações de energia. O sistema para de atender se ela desligar ou dormir.
 
@@ -54,41 +62,21 @@ Abra a pasta extraída do projeto no gerenciador de arquivos. Clique com o botã
 bash instalar.sh
 ```
 
-Responda às perguntas ou pressione Enter para aceitar as sugestões. O script pede a senha de administrador quando precisar acessar/iniciar Docker, instalar o certificado ou preparar o serviço de inicialização. O terminal não mostra caracteres enquanto você digita a senha do `sudo`; isso é normal.
+Responda às perguntas ou pressione Enter para aceitar as sugestões. O script pede a senha de administrador quando precisar acessar/iniciar Docker, preparar o serviço de inicialização. O terminal não mostra caracteres enquanto você digita a senha do `sudo`; isso é normal.
 
 Aguarde **INSTALAÇÃO CONCLUÍDA** e abra o endereço informado. Usuário e senha inicial ficam no arquivo privado `producao/ACESSO.txt`. O mesmo comando inicia novamente com as respostas preservadas. O início automático ao ligar é configurado em Linux com Docker Engine local e systemd. Em ambientes sem esse suporte, o assistente oferece **não** como padrão e informa a limitação.
 
-## 4. HTTPS e primeiro acesso
+## 4. Acesso pela LAN
 
-O endereço será `https://IP_RESERVADO` ou `https://NOME_FORNECIDO`, acrescido de `:PORTA` se você escolher outra porta além de 443. O assistente já instala a confiança do certificado no computador servidor. As instruções manuais abaixo servem para os outros computadores ou para suporte. Abra exatamente o endereço informado pelo script. No próprio servidor também use esse endereço, e não `localhost`, se tiver configurado um IP.
+Abra o endereço exibido pelo instalador, normalmente `http://IP_DO_SERVIDOR:8080`.
+Não há certificado para instalar ou compartilhar. No celular com o APK release
+1.3.1 ou posterior, use esse mesmo endereço acrescido de `/api`.
 
-Por padrão, o projeto cria um certificado local para criptografar a conexão. O navegador só confiará nele depois que a instituição instalar o certificado nas máquinas clientes. O script copia o certificado público para `producao/certificado-local.crt`. Compartilhe **somente esse arquivo público** com quem configura os computadores. Nunca compartilhe a pasta `caddy` dos backups: ela contém a chave privada da autoridade certificadora.
-
-### Computadores Windows
-
-1. Confira com o responsável que o arquivo `certificado-local.crt` veio desta instalação.
-2. Dê dois cliques no certificado e escolha **Instalar certificado**.
-3. Escolha **Computador local** (exige administrador), **Colocar todos os certificados no repositório a seguir**, **Procurar**, **Autoridades de Certificação Raiz Confiáveis** e conclua.
-4. Feche e reabra o navegador. Acesse o endereço HTTPS novamente.
-
-### Computadores Ubuntu/Debian
-
-Na máquina que acessará o portal, copie o arquivo público e execute a partir da pasta dele:
-
-```bash
-sudo cp certificado-local.crt /usr/local/share/ca-certificates/fatec-patrimonio.crt
-sudo update-ca-certificates
-```
-
-Feche e reabra o navegador. Navegadores com armazenamento próprio de certificados podem exigir importação nas configurações de certificados/autoridades. O responsável pelos computadores deve conferir isso. Não oriente usuários a ignorar o aviso de segurança.
-
-### Celulares e endereço institucional
-
-O APK release exige HTTPS e certificado confiável. Instalar uma autoridade apenas como certificado de usuário no Android não garante que o aplicativo confie nela. Para produção com celulares, peça à TI que prepare um nome institucional e certificado confiável pelo Android, ou distribua a autoridade como confiança de sistema em aparelhos gerenciados. Teste no APK release antes de iniciar coletas reais. A simples execução do script não comprova essa confiança.
-
-Para certificado público automático, a TI deve configurar um domínio que aponte para o servidor e a validação ACME compatível com a rede. No arquivo `producao/.env`, altere `SITE_HOST` para esse domínio e `TLS_MODE` para um endereço de e-mail institucional válido (por exemplo `TLS_MODE=ti@instituicao.edu.br`). O Caddy usa esse e-mail para emissão pública. A validação padrão precisa que a autoridade alcance o servidor na porta 443 (validação TLS-ALPN); redes internas sem essa possibilidade precisam de outro método preparado pela TI, como validação DNS ou um proxy institucional. Não exponha a máquina à internet apenas para contornar isso. Execute o iniciador novamente depois da preparação.
-
-A API do celular será o mesmo endereço do portal acrescido de `/api`, por exemplo `https://patrimonio.instituicao.edu.br/api`.
+Nos outros PCs e celulares, use o IP do servidor, nunca `localhost`.
+O instalador configura a porta do firewall para a sub-rede local nos sistemas
+suportados. No Windows, a regra vale para redes Privadas e de Domínio.
+Bloqueios da rede institucional precisam ser resolvidos na própria rede.
+HTTP não criptografa o tráfego da LAN.
 
 ## 5. Entrar pela primeira vez
 
@@ -96,7 +84,7 @@ A API do celular será o mesmo endereço do portal acrescido de `/api`, por exem
 2. Abra o endereço no navegador e entre com esses dados. O padrão de usuário é `admin@fatec.local`, mas vale o e-mail escolhido no assistente.
 3. Cadastre as contas nominais e permissões na gestão de usuários. Se mudar a senha no portal, o arquivo local não será atualizado. Executar o assistente novamente não redefine uma conta existente.
 4. Guarde a pasta `producao` protegida. Ela contém as credenciais internas e os arquivos de acesso. O assistente restringe permissões de leitura; não envie essa pasta em e-mails, chamados ou capturas de tela.
-5. Antes de importar dados reais, teste consulta, cadastro e foto. Para outros computadores e Android, valide endereço de rede e confiança do certificado nos clientes conforme seção 4.
+5. Antes de importar dados reais, teste consulta, cadastro e foto. Para outros computadores e Android, valide acesso ao endereço de rede nos clientes conforme seção 4.
 
 O e-mail automático precisa de uma conta SMTP real. Sem ela, os e-mails permanecem pendentes; Mailpit não faz parte da produção. Peça ao responsável pelo e-mail os valores de `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` e `SMTP_FROM`; eles ficam em `producao/.env`. Depois, execute o iniciador novamente e configure destinatários na tela Parâmetros. Não invente credenciais. Valores contendo `$`, `#` ou espaços precisam da sintaxe de aspas do arquivo de ambiente do Compose; a TI deve preparar esses valores.
 
@@ -160,10 +148,10 @@ Se uma atualização falhar, preserve os dados e peça suporte. Retornar somente
 | Docker não encontrado                           | Instale Docker conforme a seção do seu sistema e reabra o terminal.                                                                                 |
 | Cannot connect / daemon / permission denied     | Windows: abra Docker Desktop e aguarde. Linux: use `sudo bash producao.sh`; confira se Docker está ativo.                                           |
 | Download ou build falhou                        | Confira internet, espaço livre e acesso aos servidores de pacotes. Execute novamente; a configuração existente é preservada.                        |
-| Port already allocated / address already in use | Outro programa usa a porta HTTPS escolhida. Peça ao responsável para identificar o conflito; não encerre programas desconhecidos.                   |
+| Port already allocated / address already in use | Outro programa usa a porta HTTP escolhida. Peça ao responsável para identificar o conflito; não encerre programas desconhecidos.                   |
 | Inicialização demorou e terminou em erro        | Use `status` e `logs`. Serviços podem continuar ativos. Após corrigir a causa, execute o iniciador novamente.                                       |
 | Só abre no servidor                             | Confira IP, reserva de endereço, firewall e conexão da rede/Wi-Fi com o responsável da rede.                                                        |
-| Aviso de certificado                            | Confira endereço e instale a autoridade conforme seção 4. Não ignore o aviso.                                                                       |
+| Aviso de certificado                            | Use o endereço HTTP exibido pelo instalador, com a porta escolhida.                                                                       |
 | Login não funciona                              | Use a senha atual da conta. `.env` guarda a senha inicial, que pode ter sido alterada depois. Não apague o banco para recuperar acesso.             |
 | E-mail não chega                                | Confira SMTP, destinatários e fila de pendências. Sem SMTP, mensagens não saem.                                                                     |
 | Banco vazio após mudança de máquina/pasta       | Não importe de novo por impulso. Confirme o Docker/contexto correto e restaure o backup com suporte. Demonstração e produção usam bancos separados. |
@@ -197,7 +185,7 @@ docker compose --env-file producao/.env -f infra/compose.production.yaml cp CAMI
 No `--volume`, use caminho absoluto e envolva o argumento inteiro em aspas se contiver espaços. No Windows, por exemplo `--volume "C:\Backups\copia:/backup:ro"`. Não use redirecionamento `>` de dump binário no Windows PowerShell antigo: ele pode corromper o arquivo.
 
 4. Executar o iniciador normal. As migrations e o bootstrap preservam o administrador restaurado. Conferir login, quantidade de registros, fotos antigas, histórico e fila de e-mails. Comparar com a instalação de origem.
-5. Validar o certificado nos clientes e a conexão do APK release. Se a autoridade do backup foi preservada, a confiança anterior continua vinculada à mesma chave; mantenha essa chave protegida.
+5. Validar o acesso HTTP nos clientes e a conexão do APK release atualizado.
 6. Registrar data, versão e resultado do teste. Nunca ensaiar restauração por cima do único banco em uso.
 
 ## 11. O que foi validado nesta entrega

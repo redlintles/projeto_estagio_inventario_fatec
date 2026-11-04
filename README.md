@@ -1,6 +1,8 @@
-> **Máquina nova / Download ZIP:** leia `LEIA-ME-PRIMEIRO.txt`. Instale o Docker manualmente, extraia o ZIP e execute **INSTALAR.cmd** no Windows ou **bash instalar.sh** no Linux. O assistente pergunta os dados necessários, prepara os serviços, HTTPS e início automático. Mais detalhes no [guia de produção](docs/PRODUCAO.md).
+> **Entrega e instalação pelo Download ZIP:** siga o [Guia de instalação e entrega](GUIA-DE-INSTALACAO.md), com passos simples para instalar no Windows, entrar no sistema, fazer backup e conferir o funcionamento até 06/11/2026. Para Linux e suporte técnico, consulte docs/PRODUCAO.md.
 
-> **Android:** o APK de produção [patrimonio-fatec-1.3.0-release.apk](patrimonio-fatec-1.3.0-release.apk) fica na raiz e acompanha o Download ZIP. Ele é assinado com a chave exclusiva do projeto e exige HTTPS. O [APK debug](patrimonio-fatec-1.3.0-debug.apk) continua disponível para testes. As duas assinaturas são diferentes; sincronize as pendências antes de migrar de debug para produção.
+> **Máquina nova / Download ZIP:** leia `LEIA-ME-PRIMEIRO.txt`. Instale o Docker manualmente, extraia o ZIP e execute **INSTALAR.cmd** no Windows ou **bash instalar.sh** no Linux. O assistente pergunta os dados necessários, prepara os serviços, acesso HTTP na LAN e início automático. Mais detalhes no [guia de produção](docs/PRODUCAO.md).
+
+> **Android:** o APK de produção [patrimonio-fatec-1.3.1-release.apk](patrimonio-fatec-1.3.1-release.apk) fica na raiz e acompanha o Download ZIP. Ele é assinado com a chave exclusiva do projeto e permite HTTP na LAN, sem certificado. O [APK debug](patrimonio-fatec-1.3.0-debug.apk) continua disponível para testes. As duas assinaturas são diferentes; sincronize as pendências antes de migrar de debug para produção.
 
 # Gestão Patrimonial Fatec
 
@@ -24,7 +26,7 @@ Sistema interno da unidade de ensino para importar a base patrimonial, conferir 
 | `docs/`    | Requisitos, arquitetura, contratos e manutenção         | Markdown                                      |
 | `infra/`   | Ambiente Docker opcional e proxy de exemplo             | Compose e Nginx                               |
 
-A hospedagem será em uma máquina interna da Fatec, na rede local compartilhada, sem VLANs. A configuração operacional de endereço estável, HTTPS e backup está descrita em `docs/deploy.md`. O ambiente Compose continua sendo uma opção de desenvolvimento e demonstração.
+A hospedagem será em uma máquina interna da Fatec, na rede local compartilhada, sem VLANs. A configuração operacional de endereço estável, acesso LAN e backup está descrita em `docs/deploy.md`. O ambiente Compose continua sendo uma opção de desenvolvimento e demonstração.
 
 ## Executar com um comando
 
@@ -32,7 +34,7 @@ A hospedagem será em uma máquina interna da Fatec, na rede local compartilhada
 ./iniciar.sh
 ```
 
-O script inicia banco, backend e portal, gera a configuração local e aplica as migrations. Requer Node.js 24 e Docker com Compose iniciado; não exige editar env. Portal em `http://localhost:8080` e `http://IP_DO_PC:8080`. Credenciais em `.demo/.env`, sem impressão da senha no terminal. O modo padrão já permite acesso de computadores e celulares na mesma rede; `./iniciar.sh --rede` é um alias e `./iniciar.sh --parar` para parar preservando os dados. O modo de rede usa HTTP e é destinado a testes; dados reais exigem a implantação HTTPS descrita em `docs/deploy.md`.
+O script inicia banco, backend e portal, gera a configuração local e aplica as migrations. Requer Node.js 24 e Docker com Compose iniciado; não exige editar env. Portal em `http://localhost:8080` e `http://IP_DO_PC:8080`. Credenciais em `.demo/.env`, sem impressão da senha no terminal. O modo padrão já permite acesso de computadores e celulares na mesma rede; `./iniciar.sh --rede` é um alias e `./iniciar.sh --parar` para parar preservando os dados. O modo de rede usa HTTP. A instalação pelo assistente também usa HTTP na LAN, sem certificados.
 
 A importação do modelo institucional, estados e cálculos estão em [Importação](docs/importacao.md). O escopo da auditoria e os requisitos restantes estão em [Segurança](docs/seguranca.md).
 
@@ -118,7 +120,7 @@ cd mobile
 
 A revisão de compatibilidade e os limites da validação Android estão em [docs/revisao-android.md](docs/revisao-android.md). O celular permanece focado em identificação, conferência e fotos; as funções de gestão ficam no portal.
 
-O APK de desenvolvimento é gerado em `mobile/app/build/outputs/apk/debug/app-debug.apk`. No login, informe a URL da API. No emulador, use `http://10.0.2.2:3000/api`; em um aparelho conectado à mesma rede do servidor, use o endereço do servidor. A versão release exige HTTPS.
+O APK de desenvolvimento é gerado em `mobile/app/build/outputs/apk/debug/app-debug.apk`. No login, informe a URL da API. No emulador, use `http://10.0.2.2:3000/api`; em um aparelho conectado à mesma rede do servidor, use o endereço do servidor. A versão release permite HTTP na LAN, sem certificado.
 
 Antes de entrar em uma sala sem internet: faça login, atualize a base e prepare um inventário da sala. Leia os ativos, confira a descrição e confirme. As operações ficam gravadas no SQLite. Consulte a aba Pendências para acompanhar a sincronização e os conflitos. Nunca desinstale o aplicativo com pendências: a desinstalação remove o banco local.
 
@@ -164,3 +166,5 @@ O projeto usa uma marca de etiqueta patrimonial com barras e selo de conferênci
 ## Inventário guiado — versão 1.3
 
 O Android 1.3 inclui lista local de bens esperados, progresso, ausências, conclusão sincronizada e cancelamento. A API impede sessões simultâneas na mesma sala por padrão; administradores podem alterar a política em Parâmetros. Veja o [guia de inventário Android](docs/inventario-android.md).
+
+O instalador agora usa HTTP na LAN, normalmente `http://IP:8080`, sem instalar certificados. Para corrigir uma instalação anterior, atualize os arquivos na mesma pasta e execute `INSTALAR.cmd` (Linux: `bash instalar.sh`), preservando `producao`. Contas e dados são mantidos; consulte o endereço atualizado em `producao/ACESSO.txt`. O APK release Android também aceita HTTP na LAN, sem certificado.

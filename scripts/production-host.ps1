@@ -1,5 +1,5 @@
 # Ajusta somente certificado local e regra de firewall desta aplicacao.
-param([ValidateRange(1,65535)][int]$Port = 443, [switch]$LocalOnly, [switch]$FirewallOnly)
+param([ValidateRange(1,65535)][int]$Port = 443, [switch]$LocalOnly, [switch]$FirewallOnly, [switch]$SemCertificado)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 try {
@@ -10,7 +10,7 @@ try {
         exit 0
     }
     $certificate = Join-Path $root 'producao\certificado-local.crt'
-    if (Test-Path $certificate) {
+    if (-not $SemCertificado -and (Test-Path $certificate)) {
         # Pode exibir confirmacao de confianca do proprio Windows para esta conta.
         Import-Certificate -FilePath $certificate -CertStoreLocation Cert:\CurrentUser\Root | Out-Null
     }

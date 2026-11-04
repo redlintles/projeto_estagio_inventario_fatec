@@ -160,7 +160,7 @@ try {
     assert.match(config, /SITE_HOST=192\.168\.1\.50/);
     assert.match(config, /JWT_SECRET=[0-9a-f]{96}/);
     assert.match(config, /BOOTSTRAP_PASSWORD=[0-9a-f]{24}/);
-    assert.ok(existsSync(path.join(root, "producao", "certificado-local.crt")));
+    assert.ok(!existsSync(path.join(root, "producao", "certificado-local.crt")));
     const generation = calls().find((args) => args[0] === "run");
     assert.ok(
       generation.some(
@@ -245,11 +245,11 @@ try {
     assert.notEqual(run("iniciar", { fail: "info --format" }).status, 0);
     assert.equal(calls().length, 1);
   });
-  test("certificado publico nao tenta copiar autoridade local", () => {
+  test("HTTP nao tenta copiar autoridade local", () => {
     const before = readFileSync(configPath, "utf8");
     writeFileSync(
       configPath,
-      before.replace("TLS_MODE=internal", "TLS_MODE=ti@example.org"),
+      before,
     );
     clearCalls();
     success(run("iniciar"));
@@ -348,7 +348,7 @@ try {
     success(result);
     assert.match(
       result.stdout,
-      /INSTALACAO CONCLUIDA: https:\/\/localhost:58443/,
+      /INSTALACAO CONCLUIDA: http:\/\/localhost:58443/,
     );
     const env = readFileSync(configPath, "utf8");
     assert.match(env, /BOOTSTRAP_EMAIL=operador@fatec.local/);

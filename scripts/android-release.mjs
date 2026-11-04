@@ -180,8 +180,8 @@ try {
     throw Error("Nao foi possivel conferir o manifesto do APK.");
   if (/android:debuggable[^\n]*0xffffffff/.test(inspected.stdout))
     throw Error("APK inesperadamente depuravel; entrega interrompida.");
-  if (!/android:usesCleartextTraffic[^\n]*0x0\b/.test(inspected.stdout))
-    throw Error("A versao de producao deve recusar HTTP.");
+  if (!/android:usesCleartextTraffic[^\n]*0xffffffff\b/.test(inspected.stdout))
+    throw Error("A versao de producao deve permitir HTTP na LAN.");
   // Recusa substituir uma entrega existente por outra identidade de assinatura.
   if (existsSync(target)) {
     const fingerprint = (file) => {

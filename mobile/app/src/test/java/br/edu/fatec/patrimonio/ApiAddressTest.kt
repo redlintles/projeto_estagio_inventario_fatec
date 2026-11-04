@@ -14,13 +14,9 @@ class ApiAddressTest {
   }
 
   @Test
-  fun permitsHttpOnlyInDebugBuilds() {
-    val address = " http://192.168.1.10:3000/api/ "
-    if (BuildConfig.DEBUG) {
-      assertEquals("http://192.168.1.10:3000/api", normalizeApiUrl(address))
-    } else {
-      assertThrows(IllegalArgumentException::class.java) { normalizeApiUrl(address) }
-    }
+  fun permitsHttpInDebugAndReleaseBuilds() {
+    val address = " http://192.168.1.10:8080/api/ "
+    assertEquals("http://192.168.1.10:8080/api", normalizeApiUrl(address))
   }
 
   @Test

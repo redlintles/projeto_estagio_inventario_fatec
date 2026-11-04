@@ -70,13 +70,15 @@ try {
             $config = Get-Content producao/.env
             $suffix = (($config | Where-Object { $_ -like 'SITE_PORT_SUFFIX=*' }) -replace '^SITE_PORT_SUFFIX=', '')
             $login = (($config | Where-Object { $_ -like 'BOOTSTRAP_EMAIL=*' }) -replace '^BOOTSTRAP_EMAIL=', '')
-            if ($config -contains 'TLS_MODE=internal') {
+            if (($config -contains 'TLS_MODE=internal') -and ($config -notcontains 'SITE_SCHEME=http')) {
                 Compose-Run cp gateway:/data/caddy/pki/authorities/local/root.crt producao/certificado-local.crt
             }
             $address = ($config | Where-Object { $_ -like 'SITE_HOST=*' }) -replace '^SITE_HOST=', ''
-            Write-Host "Servicos iniciados: https://$address$suffix"
+            $scheme = "https"
+            if ($config -contains "SITE_SCHEME=http") { $scheme = "http" }
+            Write-Host "Servicos iniciados: ${scheme}://$address$suffix"
             Write-Host "Login inicial: $login. Consulte producao\ACESSO.txt; em instalacoes antigas, producao\.env."
-            Write-Host 'Instale o certificado conforme docs/PRODUCAO.md antes de acessar.'
+            Write-Host 'Use o endereco informado nos computadores da LAN.'
         }
         'parar' { Compose-Run stop; Write-Host 'Sistema parado. Dados preservados.' }
         'status' { Compose-Run ps -a }

@@ -72,7 +72,7 @@ if(args.includes('cp')) writeFileSync('producao/certificado-local.crt','TESTE');
   assert.equal(result.status, 0, result.stdout + result.stderr);
   assert.match(
     result.stdout,
-    /INSTALAÇÃO CONCLUÍDA: https:\/\/localhost:58443/,
+    /INSTALAÇÃO CONCLUÍDA: http:\/\/localhost:58443/,
   );
   assert.ok(existsSync(path.join(root, "producao", "host-ok")));
   const config = readFileSync(path.join(root, "producao", ".env"), "utf8");

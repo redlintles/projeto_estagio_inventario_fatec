@@ -109,10 +109,8 @@ fun normalizeApiUrl(value: String): String {
       parsed.query == null &&
       parsed.fragment == null
   ) {
-    "Endereço da API inválido. Use http://IP_DO_PC:3000/api nos testes em LAN."
+    "Endereço da API inválido. Use http://IP_DO_PC:8080/api na LAN."
   }
-  require(parsed.scheme == "https" || (BuildConfig.DEBUG && parsed.scheme == "http")) {
-    "Use HTTPS em produção."
-  }
+  require(parsed.scheme == "https" || parsed.scheme == "http") { "Use um endereço HTTP ou HTTPS." }
   return value.trim().trimEnd('/')
 }

@@ -2,15 +2,15 @@
 set -Eeuo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.."
 get_value() { sed -n "s/^$1=//p" producao/.env | tr -d '\r'; }
-port=$(get_value HTTPS_PORT); port=${port:-443}
+port=$(get_value HTTP_PORT); port=${port:-$(get_value HTTPS_PORT)}; port=${port:-443}
 [[ $port =~ ^[0-9]+$ ]] && (( port >= 1 && port <= 65535 ))
 admin=()
 if (( EUID != 0 )); then
-  echo 'O Linux pedirá sua senha para confiar no HTTPS e preparar a inicialização.'
+  echo 'O Linux pedirá sua senha para preparar o firewall e a inicialização.'
   sudo -v
   admin=(sudo)
 fi
-if [[ -f producao/certificado-local.crt ]]; then
+if [[ $(get_value SITE_SCHEME) != http && -f producao/certificado-local.crt ]]; then
   if command -v update-ca-certificates >/dev/null; then
     "${admin[@]}" install -m 644 producao/certificado-local.crt /usr/local/share/ca-certificates/fatec-patrimonio.crt
     "${admin[@]}" update-ca-certificates

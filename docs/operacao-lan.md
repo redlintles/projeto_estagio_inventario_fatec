@@ -26,7 +26,7 @@ O modo padrão publica dashboard em `0.0.0.0:8080` e API em `0.0.0.0:3000`. Banc
 
 PC e celular precisam de rota entre si; desative isolamento de clientes no ponto de acesso autorizado e libere TCP 8080 e 3000 no firewall apenas para a sub-rede institucional. Não encaminhe essas portas no roteador para a internet. Se o IP mudar, atualize o endereço antes de iniciar novas coletas; prefira uma reserva DHCP. Confirme `http://IP_DO_PC:3000/api/health` a partir de outra máquina ou do navegador do celular.
 
-O dashboard usa `/api` pelo proxy na mesma origem, portanto não exige uma lista aberta de CORS. O app nativo usa a API diretamente e não depende de CORS. O APK debug permite HTTP para testes em LAN; release exige HTTPS e assinatura institucional. Para dados reais, publique uma origem HTTPS com certificado confiável e siga [deploy](deploy.md).
+O dashboard usa `/api` pelo proxy na mesma origem, portanto não exige uma lista aberta de CORS. O app nativo usa a API diretamente e não depende de CORS. Os APKs debug e release 1.3.1 aceitam HTTP na LAN, sem certificado. Na instalação, use `http://IP_DO_PC:8080/api`.
 
 ## Preparar e coletar
 

@@ -55,7 +55,7 @@ private val helpTopics =
       listOf(
         "Antes de entrar, use Testar conexão com servidor para verificar o endereço da API. Em Base e sincronização, expanda Atualizar base e sincronizar para acessar os controles. Entre com a conta fornecida pelo administrador. As tarefas dependem das permissões configuradas no portal, e não apenas do nome do perfil. Para coletar, solicite Consultar ativos, Realizar inventários e, quando necessário, Adicionar fotos.",
         "No celular físico, informe a API do servidor da instituição. Na demo em rede, use http://IP_DO_PC:3000/api e inicie o PC com npm start (ou ./iniciar.sh). 10.0.2.2 é somente para emuladores.",
-        "Na demo por USB, com encaminhamento configurado, use http://127.0.0.1:3000/api e mantenha o cabo conectado. A versão de produção exige HTTPS.",
+        "Na demo por USB, com encaminhamento configurado, use http://127.0.0.1:3000/api e mantenha o cabo conectado. Na instalação LAN, use http://IP_DO_PC:8080/api, sem certificado.",
       ),
     "Base e sincronização" to
       listOf(

@@ -8,7 +8,7 @@ x-backend-env: &backend-env
   NODE_ENV: production
   DATABASE_URL: postgresql://patrimonio:${POSTGRES_PASSWORD:?}@database:5432/patrimonio
   JWT_SECRET: ${JWT_SECRET:?}
-  WEB_ORIGIN: https://${SITE_HOST:?}${SITE_PORT_SUFFIX:-}
+  WEB_ORIGIN: ${SITE_SCHEME:-https}://${SITE_HOST:?}${SITE_PORT_SUFFIX:-}
   UPLOAD_DIR: /app/uploads
   SMTP_HOST: ${SMTP_HOST:-}
   SMTP_PORT: ${SMTP_PORT:-587}
@@ -91,9 +91,10 @@ services:
     logging: *logging
     environment:
       SITE_HOST: ${SITE_HOST:?}
-      TLS_MODE: ${TLS_MODE:-internal}
+      GATEWAY_ADDRESS: ${GATEWAY_ADDRESS:-${SITE_HOST}}
+      TLS_DIRECTIVE: ${TLS_DIRECTIVE:-tls ${TLS_MODE:-internal}}
     ports:
-      - "${BIND_ADDRESS:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+      - "${BIND_ADDRESS:-0.0.0.0}:${HTTP_PORT:-${HTTPS_PORT:-443}}:${GATEWAY_PORT:-443}"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

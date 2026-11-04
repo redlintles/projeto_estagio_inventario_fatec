@@ -30,7 +30,7 @@ export async function setup({
   directory = "/config",
   platform = process.env.SETUP_OS || "linux",
   defaultHost = process.env.DEFAULT_HOST || "localhost",
-  defaultPort = process.env.DEFAULT_PORT || "443",
+  defaultPort = process.env.DEFAULT_PORT || "8080",
   busyPorts = process.env.BUSY_PORTS || "",
   autoSupported = process.env.AUTO_SUPPORTED !== "false",
   input = process.stdin,
@@ -42,6 +42,62 @@ export async function setup({
       "\nJa existe uma instalacao configurada. Vou iniciar sem trocar contas, senhas ou dados.\n",
     );
     const saved = loadConfig(directory);
+    if (saved.SITE_SCHEME !== "http") {
+      const envPath = path.join(directory, ".env");
+      const original = readFileSync(envPath, "utf8");
+      const backup = path.join(directory, ".env.before-http");
+      if (!existsSync(backup)) writeFileSync(backup, original, { mode: 0o600 });
+      Object.assign(saved, {
+        SITE_SCHEME: "http",
+        HTTP_PORT: String(defaultPort),
+        SITE_PORT_SUFFIX: Number(defaultPort) === 80 ? "" : `:${defaultPort}`,
+        GATEWAY_ADDRESS: ":80",
+        GATEWAY_PORT: "80",
+        TLS_DIRECTIVE: "encode gzip",
+        BIND_ADDRESS: "0.0.0.0",
+      });
+      if (
+        (saved.SITE_HOST === "localhost" ||
+          saved.SITE_HOST?.startsWith("127.")) &&
+        validHost(defaultHost)
+      )
+        saved.SITE_HOST = defaultHost;
+      const updates = new Set([
+        "SITE_SCHEME",
+        "HTTP_PORT",
+        "SITE_PORT_SUFFIX",
+        "GATEWAY_ADDRESS",
+        "GATEWAY_PORT",
+        "TLS_DIRECTIVE",
+        "BIND_ADDRESS",
+        "SITE_HOST",
+      ]);
+      const retained = original
+        .split(/\r?\n/)
+        .filter((line) => !updates.has(line.split("=")[0]));
+      writeFileSync(
+        envPath,
+        retained.join("\n").trimEnd() +
+          "\n" +
+          [...updates].map((key) => `${key}=${saved[key]}`).join("\n") +
+          "\n",
+        { mode: 0o600 },
+      );
+      output.write(
+        "Acesso atualizado para HTTP na LAN. Credenciais preservadas; configuracao anterior em .env.before-http.\n",
+      );
+    }
+    const accessPath = path.join(directory, "ACESSO.txt");
+    if (existsSync(accessPath)) {
+      writeFileSync(
+        accessPath,
+        readFileSync(accessPath, "utf8").replace(
+          /^Endereco:.*$/m,
+          `Endereco: http://${saved.SITE_HOST}${saved.SITE_PORT_SUFFIX || ""}`,
+        ),
+        { mode: 0o600 },
+      );
+    }
     if (!existsSync(path.join(directory, "ACESSO.txt"))) {
       const password = saved.BOOTSTRAP_PASSWORD_B64
         ? Buffer.from(saved.BOOTSTRAP_PASSWORD_B64, "base64").toString("utf8")
@@ -49,7 +105,7 @@ export async function setup({
           "Consulte o responsavel pela conta existente.";
       writeFileSync(
         path.join(directory, "ACESSO.txt"),
-        `ACESSO INICIAL - ARQUIVO PRIVADO\nEndereco: https://${saved.SITE_HOST}${saved.SITE_PORT_SUFFIX || ""}\nUsuario: ${saved.BOOTSTRAP_EMAIL}\nSenha inicial: ${password}\nA senha pode ter sido alterada no portal desde a instalacao.\n`,
+        `ACESSO INICIAL - ARQUIVO PRIVADO\nEndereco: http://${saved.SITE_HOST}${saved.SITE_PORT_SUFFIX || ""}\nUsuario: ${saved.BOOTSTRAP_EMAIL}\nSenha inicial: ${password}\nA senha pode ter sido alterada no portal desde a instalacao.\n`,
         { mode: 0o600 },
       );
     }
@@ -167,7 +223,7 @@ export async function setup({
       "Responda s para sim ou n para nao. O inicio automatico precisa ser suportado pelo sistema.",
     );
     output.write(
-      "\nVou preparar o sistema, confiar no certificado HTTPS local e permitir acesso pela rede local.\nO computador podera pedir autorizacao de administrador. Seus dados ficarao nesta maquina.\n",
+      "\nVou preparar o sistema, usar HTTP sem certificado e permitir acesso pela rede local.\nO computador podera pedir autorizacao de administrador. Seus dados ficarao nesta maquina.\n",
     );
     const confirm = await ask(
       "Posso configurar e iniciar agora? (s/n)",
@@ -180,13 +236,17 @@ export async function setup({
     const automatic = /^s/i.test(auto);
     const values = {
       SITE_HOST: host,
-      HTTPS_PORT: String(Number(port)),
-      SITE_PORT_SUFFIX: Number(port) === 443 ? "" : `:${Number(port)}`,
+      HTTP_PORT: String(Number(port)),
+      SITE_SCHEME: "http",
+      GATEWAY_ADDRESS: ":80",
+      GATEWAY_PORT: "80",
+      TLS_DIRECTIVE: "encode gzip",
+      SITE_PORT_SUFFIX: Number(port) === 80 ? "" : `:${Number(port)}`,
       BIND_ADDRESS:
         host === "localhost" || host.startsWith("127.")
           ? "127.0.0.1"
           : "0.0.0.0",
-      TLS_MODE: "internal",
+      TLS_MODE: "disabled",
       POSTGRES_PASSWORD: randomBytes(24).toString("hex"),
       JWT_SECRET: randomBytes(48).toString("hex"),
       BOOTSTRAP_EMAIL: email,
@@ -205,7 +265,7 @@ export async function setup({
       Object.entries(values)
         .map(([key, value]) => `${key}=${value}`)
         .join("\n") + "\n";
-    const access = `ACESSO INICIAL - ARQUIVO PRIVADO\n\nEndereco: https://${host}${values.SITE_PORT_SUFFIX}\nUsuario: ${email}\nSenha inicial: ${password}\n\nGuarde este arquivo em lugar seguro. Nao compartilhe a pasta producao.\nSe mudar a senha no portal, a senha deste arquivo nao sera atualizada.\n`;
+    const access = `ACESSO INICIAL - ARQUIVO PRIVADO\n\nEndereco: http://${host}${values.SITE_PORT_SUFFIX}\nUsuario: ${email}\nSenha inicial: ${password}\n\nGuarde este arquivo em lugar seguro. Nao compartilhe a pasta producao.\nSe mudar a senha no portal, a senha deste arquivo nao sera atualizada.\n`;
     writeFileSync(path.join(directory, "ACESSO.txt"), access, { mode: 0o600 });
     writeFileSync(path.join(directory, ".env"), content, {
       flag: "wx",

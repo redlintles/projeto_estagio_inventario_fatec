@@ -52,8 +52,8 @@ try {
     } catch { }
     $busyPorts = ''
     try { $busyPorts = ((Get-NetTCPConnection -State Listen | Select-Object -ExpandProperty LocalPort -Unique) -join ',') } catch { }
-    $suggestedPort = '443'
-    if (($busyPorts -split ',') -contains '443') { $suggestedPort = '8443' }
+    $suggestedPort = '8080'
+    while (($busyPorts -split ',') -contains $suggestedPort) { $suggestedPort = [string]([int]$suggestedPort + 1) }
     $interactive = '-it'
     if ([Console]::IsInputRedirected) { $interactive = '-i' }
     Invoke-Docker run --rm $interactive --mount "type=bind,source=$((Get-Location).Path)\producao,target=/config" --mount "type=bind,source=$PSScriptRoot\production-setup.mjs,target=/setup.mjs,readonly" -e SETUP_OS=windows -e "DEFAULT_HOST=$serverHost" -e "DEFAULT_PORT=$suggestedPort" -e "BUSY_PORTS=$busyPorts" node:24-alpine node /setup.mjs
@@ -63,13 +63,13 @@ try {
     }
     & (Join-Path $PSScriptRoot 'production.ps1') -Acao iniciar
     if ($LASTEXITCODE -ne 0) { throw 'O sistema nao iniciou. Confira as mensagens acima.' }
-    & (Join-Path $PSScriptRoot 'production-host.ps1') -Port ([int]$(if ($config.HTTPS_PORT) { $config.HTTPS_PORT } else { 443 })) -LocalOnly:($config.BIND_ADDRESS -eq '127.0.0.1')
+    & (Join-Path $PSScriptRoot 'production-host.ps1') -Port ([int]$(if ($config.HTTP_PORT) { $config.HTTP_PORT } else { 8080 })) -LocalOnly:($config.BIND_ADDRESS -eq '127.0.0.1') -SemCertificado:($config.SITE_SCHEME -eq 'http')
     if ($LASTEXITCODE -ne 0) { throw 'Os ajustes do Windows nao foram concluidos. Execute INSTALAR.cmd novamente.' }
     $autoAction = 'desativar'
     if ($config.SETUP_AUTOSTART -eq 's') { $autoAction = 'ativar' }
     & (Join-Path $PSScriptRoot 'production-autostart.ps1') -Acao $autoAction
     if ($LASTEXITCODE -ne 0) { throw 'Nao foi possivel configurar o inicio automatico.' }
-    $url = "https://$($config.SITE_HOST)$($config.SITE_PORT_SUFFIX)"
+    $url = "http://$($config.SITE_HOST)$($config.SITE_PORT_SUFFIX)"
     Write-Host "`nINSTALACAO CONCLUIDA: $url"
     Write-Host 'Seu usuario e senha inicial estao em producao\ACESSO.txt (arquivo privado).'
     Write-Host 'Guarde a pasta neste local. Para iniciar novamente, use o mesmo INSTALAR.cmd.'

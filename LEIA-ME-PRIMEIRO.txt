@@ -1,6 +1,9 @@
 PATRIMONIO FATEC - COMO INSTALAR E USAR
 =====================================
 
+ROTEIRO COMPLETO DE ENTREGA: abra GUIA-DE-INSTALACAO.md.
+Inclui instalacao pelo ZIP, primeiro uso e conferencia para 06/11/2026.
+
 COMECE POR AQUI
 
 Voce nao precisa saber programar. O computador precisa ter um sistema operacional
@@ -49,7 +52,7 @@ Nao precisa escolher banco de dados, servicos, comandos ou ferramentas.
 O que ele pergunta:
 - Endereco do computador: geralmente pode aceitar o IP detectado automaticamente.
   Se usar somente neste computador, pode digitar localhost.
-- Porta: pode aceitar 443. Se ja estiver ocupada, escolha outra, por exemplo 8443.
+- Porta: pode aceitar 8080. Se ja estiver ocupada, aceite a proxima porta livre.
 - Usuario de acesso: informe um e-mail ou aceite admin@fatec.local.
   Esse e-mail e o nome de entrada; nao precisa existir para entrar no portal.
 - Senha: escolha uma com pelo menos 12 caracteres. Enter gera uma senha segura.
@@ -58,12 +61,11 @@ O que ele pergunta:
 - Confirmacao final: Enter autoriza preparar e iniciar com as respostas escolhidas.
 
 O assistente gera as senhas internas, monta os componentes, prepara o banco,
-cria a conta de acesso, inicia o sistema, prepara o certificado HTTPS neste
-computador e configura o inicio automatico conforme a sua resposta.
+cria a conta de acesso, inicia o sistema em HTTP na rede local
+e configura o inicio automatico conforme a sua resposta.
 Pode levar varios minutos. Nao feche durante a instalacao.
 
-O Windows pode pedir confirmacao de confianca no certificado e autorizacao de
-administrador para permitir a porta na rede local. Confirme para concluir.
+O Windows pode pedir autorizacao de administrador para permitir a porta na rede local. Confirme para concluir.
 No Linux, a senha do seu usuario pode ser pedida pelo sudo. O terminal nao mostra
 caracteres enquanto voce digita essa senha: isso e normal.
 
@@ -88,28 +90,27 @@ A primeira instalacao e as atualizacoes precisam baixar componentes. Depois,
 o acesso local nao precisa de internet. Servicos externos, como envio de e-mail,
 precisam de conexao e configuracao propria.
 
-O QUE SIGNIFICA HTTPS? POSSO IGNORAR UM AVISO DE SEGURANCA?
-HTTPS protege a conexao. O assistente instala a confianca do certificado neste
-computador. Feche e reabra o navegador se necessario. Nao ignore avisos de seguranca.
-Alguns navegadores Linux mantem sua propria lista de certificados: se o aviso
-persistir, peca ao suporte para importar producao/certificado-local.crt como autoridade.
+PRECISO INSTALAR CERTIFICADO?
+Nao. O instalador usa HTTP na LAN, por exemplo http://192.168.1.50:8080.
+Ao executar novamente sobre uma instalacao antiga, ele converte o acesso e
+preserva contas, senhas e dados. A configuracao anterior fica em .env.before-http.
+HTTP nao criptografa o trafego; use apenas na rede local de confianca.
 
 OUTROS COMPUTADORES PODEM ACESSAR?
 Sim, se estiverem na rede autorizada e alcancarem o IP e a porta escolhidos.
-Compartilhe o endereco mostrado, incluindo https:// e a porta se aparecer.
-Eles tambem precisam confiar no certificado publico producao/certificado-local.crt.
-Compartilhe somente esse certificado publico, nunca a pasta producao inteira.
+Compartilhe o endereco mostrado, incluindo http:// e a porta se aparecer.
+Nao precisam de certificado. Nunca compartilhe a pasta producao inteira.
 No Windows, a regra criada vale para redes Privadas e de Dominio, na sub-rede local.
 Se a rede estiver como Publica ou tiver bloqueios institucionais, peca ajuda ao
 responsavel pela rede. Firewalls personalizados tambem podem precisar de ajuste.
 
 ONDE ESTA O APK ANDROID DE PRODUCAO?
-Na raiz da pasta extraida: patrimonio-fatec-1.3.0-release.apk.
+Na raiz da pasta extraida: patrimonio-fatec-1.3.1-release.apk.
 Ele acompanha o ZIP do GitHub e funciona no Android 8 ou superior.
 Transfira o arquivo para o celular e abra-o para instalar. Use o arquivo release
 para producao; o arquivo com debug no nome e somente para testes.
 O APK release e assinado com uma chave exclusiva do projeto, nao permite depuracao
-e exige uma conexao HTTPS confiavel com o servidor.
+e aceita conexao HTTP na LAN sem certificado.
 
 POSSO ATUALIZAR O APK DEBUG COM O RELEASE?
 Nao diretamente: as assinaturas sao diferentes. Se houver um APK de testes
@@ -127,11 +128,10 @@ atualizacoes normais dos celulares que usam essa assinatura. Nao compartilhe ess
 pasta com usuarios nem envie as credenciais em chamados.
 
 E OS CELULARES ANDROID?
-O aplicativo de producao exige certificado confiavel. Instalar um certificado
-apenas como usuario no Android pode nao bastar. A TI deve preparar um endereco
-institucional com certificado confiavel, ou aparelhos gerenciados com confianca
-de sistema. O assistente nao consegue alterar a confianca de outros aparelhos.
-Nao use a versao de testes do aplicativo como solucao para contornar isso.
+O aplicativo de producao aceita HTTP na LAN sem certificado.
+Use o endereco exibido pelo instalador acrescido de /api, por exemplo
+http://192.168.1.50:8080/api. Instale a atualizacao 1.3.1 sobre a release
+anterior, sem desinstalar, para manter os dados e as filas do aparelho.
 
 O IP DO COMPUTADOR PODE MUDAR?
 Pode. Para uso por outras pessoas, peca ao responsavel pela rede que reserve o
@@ -160,7 +160,7 @@ Depois, execute novamente o mesmo assistente. Nao apague os dados.
 A PORTA ESTA OCUPADA.
 Escolha outra porta na pergunta do assistente. Se o erro apareceu depois de salvar
 as respostas, peca ao suporte para identificar o programa que esta usando a porta
-ou ajustar HTTPS_PORT e SITE_PORT_SUFFIX em producao/.env. Nao encerre programas
+ou ajustar HTTP_PORT e SITE_PORT_SUFFIX em producao/.env. Nao encerre programas
 desconhecidos nem apague o banco para resolver uma disputa de porta.
 
 E SE EU NEGAR A PERMISSAO DE ADMINISTRADOR?

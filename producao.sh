@@ -30,12 +30,13 @@ case "$action" in
   iniciar)
     echo 'Preparando o sistema. A primeira execução pode demorar vários minutos.'
     "${compose[@]}" up --build -d --wait --wait-timeout 300
-    if [[ $(sed -n 's/^TLS_MODE=//p' producao/.env | tr -d '\r') == internal ]]; then
+    if [[ $(sed -n 's/^TLS_MODE=//p' producao/.env | tr -d '\r') == internal && $(sed -n 's/^SITE_SCHEME=//p' producao/.env | tr -d '\r') != http ]]; then
       "${compose[@]}" cp gateway:/data/caddy/pki/authorities/local/root.crt producao/certificado-local.crt
     fi
-    echo 'Serviços iniciados. Endereço: https://'"$(sed -n 's/^SITE_HOST=//p' producao/.env | tr -d '\r')$(sed -n 's/^SITE_PORT_SUFFIX=//p' producao/.env | tr -d '\r')"
+    scheme=$(sed -n 's/^SITE_SCHEME=//p' producao/.env | tr -d '\r'); scheme=${scheme:-https}
+    echo "Serviços iniciados. Endereço: $scheme://""$(sed -n 's/^SITE_HOST=//p' producao/.env | tr -d '\r')$(sed -n 's/^SITE_PORT_SUFFIX=//p' producao/.env | tr -d '\r')"
     echo "Login inicial: $(sed -n 's/^BOOTSTRAP_EMAIL=//p' producao/.env | tr -d '\r'). Consulte producao/ACESSO.txt; em instalações antigas, producao/.env."
-    echo 'Instale o certificado conforme docs/PRODUCAO.md antes de acessar. API do celular: mesmo endereço acrescido de /api.'
+    echo 'Use o endereço informado nos computadores da LAN. API: mesmo endereço acrescido de /api.'
     ;;
   parar) "${compose[@]}" stop; echo 'Sistema parado. Dados preservados.' ;;
   status) "${compose[@]}" ps -a ;;

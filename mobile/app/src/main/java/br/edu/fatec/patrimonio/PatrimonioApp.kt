@@ -577,7 +577,7 @@ fun PatrimonioApp() {
             modifier = Modifier.fillMaxWidth(),
             supportingText = {
               Text(
-                "Celular na rede: http://IP_DO_PC:3000/api. O endereço 10.0.2.2 é apenas para emulador."
+                "Instalação LAN: http://IP_DO_PC:8080/api. Demo: porta 3000. O endereço 10.0.2.2 é apenas para emulador."
               )
             },
             singleLine = true,

@@ -39,13 +39,13 @@ busy=''
 if command -v ss >/dev/null; then
   busy=$({ ss -H -ltn 2>/dev/null || true; } | awk '{n=split($4,a,":"); print a[n]}' | sort -u | paste -sd, -)
 fi
-port=443
-if [[ ,$busy, == *,443,* ]]; then port=8443; fi
+port=8080
+while [[ ,$busy, == *,$port,* ]]; do ((port+=1)); done
 supported=false
 security=$(docker info --format '{{json .SecurityOptions}}')
 if [[ -d /run/systemd/system && "$security" != *rootless* ]] && systemctl cat docker.service >/dev/null 2>&1; then supported=true; fi
 user_args=(--user "$(id -u):$(id -g)")
-if [[ "$security" == *rootless* ]]; then user_args=(); port=8443; fi
+if [[ "$security" == *rootless* ]]; then user_args=(); fi
 interactive=(-i)
 if [[ -t 0 && -t 1 ]]; then interactive=(-it); fi
 docker run --rm "${interactive[@]}" "${user_args[@]}" --mount "type=bind,source=$PWD/producao,target=/config" --mount "type=bind,source=$PWD/scripts/production-setup.mjs,target=/setup.mjs,readonly" -e SETUP_OS=linux -e "DEFAULT_HOST=$host" -e "DEFAULT_PORT=$port" -e "BUSY_PORTS=$busy" -e "AUTO_SUPPORTED=$supported" node:24-alpine node /setup.mjs
@@ -53,9 +53,9 @@ bash producao.sh
 bash scripts/production-host-linux.sh
 get_value() { sed -n "s/^$1=//p" producao/.env | tr -d '\r'; }
 echo
-echo "INSTALAÇÃO CONCLUÍDA: https://$(get_value SITE_HOST)$(get_value SITE_PORT_SUFFIX)"
+echo "INSTALAÇÃO CONCLUÍDA: http://$(get_value SITE_HOST)$(get_value SITE_PORT_SUFFIX)"
 echo 'Seu usuário e senha inicial estão em producao/ACESSO.txt (arquivo privado).'
 echo 'Para iniciar novamente, use: bash instalar.sh'
 if (( EUID != 0 )) && command -v xdg-open >/dev/null; then
-  xdg-open "https://$(get_value SITE_HOST)$(get_value SITE_PORT_SUFFIX)" >/dev/null 2>&1 || true
+  xdg-open "http://$(get_value SITE_HOST)$(get_value SITE_PORT_SUFFIX)" >/dev/null 2>&1 || true
 fi
