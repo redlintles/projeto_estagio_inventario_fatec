@@ -649,7 +649,7 @@ fun PatrimonioApp() {
                       Api(session)
                         .request(
                           "auth/login",
-                          JSONObject().put("email", email).put("password", password),
+                          JSONObject().put("email", email.trim()).put("password", password),
                         )
                     )
                   }

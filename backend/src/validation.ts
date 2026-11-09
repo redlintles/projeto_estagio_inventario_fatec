@@ -10,6 +10,8 @@ export function parse<T>(schema: z.ZodType<T>, body: unknown): T {
   return result.data;
 }
 export const uuid = z.uuid();
+/** E-mail digitado: ignora espaços nas pontas (teclados móveis costumam acrescentá-los). */
+export const emailInput = z.string().trim().pipe(z.email().max(254));
 export const version = z.number().int().positive();
 export const condition = z.number().int().min(1).max(5);
 export const note = z.string().max(2000).default("");

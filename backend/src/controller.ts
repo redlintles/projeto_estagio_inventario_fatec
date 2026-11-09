@@ -49,6 +49,7 @@ import {
   note,
   assetInput,
   scanInput,
+  emailInput,
 } from "./validation";
 type AuthRequest = Request & { user: Actor };
 const fileBody = {
@@ -88,7 +89,7 @@ export class ApiController {
   login(@Body() body: unknown, @Req() request: Request) {
     const input = parse(
       z.object({
-        email: z.email().max(254),
+        email: emailInput,
         password: z.string().min(1).max(128),
       }),
       body,
@@ -419,7 +420,7 @@ export class ApiController {
         .object({
           code: z.string().min(1).max(20),
           name: z.string().min(1).max(255),
-          email: z.email().max(254),
+          email: emailInput,
         })
         .strict(),
       body,
@@ -436,7 +437,7 @@ export class ApiController {
       z
         .object({
           name: z.string().min(1).max(255).optional(),
-          email: z.email().max(254).optional(),
+          email: emailInput.optional(),
           active: z.boolean().optional(),
         })
         .strict(),
@@ -452,7 +453,7 @@ export class ApiController {
       z
         .object({
           name: z.string().min(1).max(100),
-          email: z.email().max(254),
+          email: emailInput,
           password: z.string().min(12).max(128),
           role: z.enum(["ADMIN", "PATRIMONIAL", "CONSULTA"]),
           permissions: z

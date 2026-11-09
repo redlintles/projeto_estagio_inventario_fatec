@@ -8,6 +8,7 @@ import {
 import { hashPassword, verifyPassword } from "../src/auth/auth";
 import { toCsv } from "../src/controller";
 import { Asset } from "../src/domain/model";
+import { emailInput } from "../src/validation";
 describe("Regras patrimoniais", () => {
   it("aceita somente condição inteira de 1 a 5", () => {
     for (const value of [0, 6, 2.5, -1])
@@ -41,5 +42,9 @@ describe("Regras patrimoniais", () => {
     expect(toCsv([{ name: '=HYPERLINK("url")' }])).toContain("'=");
     expect(toCsv([{ name: '  =HYPERLINK("url")' }])).toContain("'  =");
     expect(toCsv([{ name: 'a"b' }])).toContain('a""b');
+  });
+  it("aceita e-mail com espaços nas pontas, como os teclados móveis enviam", () => {
+    expect(emailInput.parse("  admin@fatec.local ")).toBe("admin@fatec.local");
+    expect(emailInput.safeParse("admin@").success).toBe(false);
   });
 });
