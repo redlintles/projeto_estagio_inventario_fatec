@@ -324,7 +324,7 @@ export function Assets({ state }: { state: AppState }) {
                   <option value="none">Sem localização</option>
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {A.locationLabel(l, units)}
+                      {A.locationLabel(l)}
                     </option>
                   ))}
                 </select>
@@ -476,7 +476,7 @@ export function Assets({ state }: { state: AppState }) {
                           .filter((l) => l.active)
                           .map((l) => (
                             <option key={l.id} value={l.id}>
-                              {A.locationLabel(l, units)}
+                              {A.locationLabel(l)}
                             </option>
                           ))}
                       </select>

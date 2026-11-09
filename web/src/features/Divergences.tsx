@@ -99,7 +99,7 @@ export function Divergences({ state }: { state: AppState }) {
                       .filter((l) => l.active)
                       .map((l) => (
                         <option key={l.id} value={l.id}>
-                          {l.description}
+                          {A.locationLabel(l)}
                         </option>
                       ))}
                   </select>

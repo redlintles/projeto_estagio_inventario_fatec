@@ -1,5 +1,5 @@
 import { it, expect, vi, afterEach } from "vitest";
-import { request, formatMoney, download } from "./api";
+import { request, formatMoney, download, locationLabel } from "./api";
 afterEach(() => vi.unstubAllGlobals());
 it("propaga erro de conflito sem tratar como sucesso", async () => {
   vi.stubGlobal(
@@ -54,4 +54,12 @@ it("trata erros HTML do proxy sem mostrar conteúdo técnico", async () => {
     }),
   );
   await expect(request("assets", "token")).rejects.toThrow("Confira a conexão");
+});
+it("identifica localizações por código e descrição", () => {
+  expect(
+    locationLabel({
+      code: "LAB-01",
+      description: "Laboratório de Informática 1",
+    }),
+  ).toBe("LAB-01 - Laboratório de Informática 1");
 });

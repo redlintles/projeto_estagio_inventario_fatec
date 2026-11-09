@@ -36,10 +36,11 @@ export interface Location {
   unitId: string | null;
   active: boolean;
 }
-/** Identifica a sala com código, descrição e unidade, evitando ambiguidades entre unidades. */
-export function locationLabel(location: Location, units: Unit[]) {
-  const unit = units.find((u) => u.id === location.unitId);
-  return `${location.code} · ${location.description}${unit ? ` — ${unit.name}` : ""}`;
+/** Rótulo das opções de localização: "{código} - {descrição}". */
+export function locationLabel(
+  location: Pick<Location, "code" | "description">,
+) {
+  return `${location.code} - ${location.description}`;
 }
 export interface Unit {
   id: string;

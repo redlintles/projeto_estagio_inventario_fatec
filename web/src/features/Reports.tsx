@@ -176,7 +176,7 @@ export function Reports({ state }: { state: AppState }) {
               <option value="none">Sem localização</option>
               {locations.map((l) => (
                 <option key={l.id} value={l.id}>
-                  {l.code} · {l.description}
+                  {A.locationLabel(l)}
                   {!l.active ? " (inativa)" : ""}
                 </option>
               ))}
