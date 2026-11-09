@@ -146,7 +146,10 @@ export function AssetDetail({ state }: { state: AppState }) {
                     >
                       <label>
                         Condição física
-                        <select name="condition">
+                        <select name="condition" required defaultValue="">
+                          <option value="" disabled>
+                            Avalie de 1 (ruim) a 5 (ótima)
+                          </option>
                           {[1, 2, 3, 4, 5].map((n) => (
                             <option key={n} value={n}>
                               {n} / 5
@@ -184,7 +187,7 @@ export function AssetDetail({ state }: { state: AppState }) {
                       <select name="destinationUnitId" required>
                         <option value="">Selecione</option>
                         {units
-                          .filter((u) => u.active)
+                          .filter((u) => u.active && u.id !== detail.unitId)
                           .map((u) => (
                             <option key={u.id} value={u.id}>
                               {u.name}
