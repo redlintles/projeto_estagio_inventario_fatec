@@ -8,6 +8,14 @@ A lista mostra patrimônio e descrição dos bens ainda sem resultado. Ela usa o
 
 A leitura de barras identifica o bem. **Confirmar conferência** registra o resultado no SQLite e remove o item da lista imediatamente, mesmo offline. Divergências também contam como resultado registrado, sem afirmar que o cadastro está correto. Bens extras registrados durante a sessão não aumentam o total esperado nem substituem bens faltantes.
 
+## Inventário inicial (versão 1.4)
+
+A planilha oficial não informa onde cada bem está, então os ativos importados chegam sem localização. Ao iniciar um inventário numa sala sem bens com localização registrada, a lista esperada fica vazia e o app mostra **Inventário inicial**. A leitura continua liberada: cada bem identificado e confirmado com **Conferência correta / atualizar localização** passa a ter aquela sala como localização oficial (e `Incorporado` vira `Ativo`), como em qualquer conferência. Divergências continuam sem alterar a localização.
+
+O mesmo vale para bens lidos fora da lista numa sala que já tem bens esperados: aparecem como **adicionados a esta sala**. Se o bem estava registrado em outra sala, o app mostra a sala anterior antes de confirmar; se a unidade do bem difere da unidade da sala, mostra um alerta.
+
+A conclusão deixou de ser automática. Ao registrar o último bem esperado, o app avisa e oferece **Concluir inventário** ou **Continuar lendo bens da sala**. O botão **Concluir inventário** fica no painel e só é habilitado quando todos os esperados têm resultado (o servidor exige isso); numa sala de inventário inicial ele fica disponível desde o começo. Depois de concluir, novas leituras exigem outro inventário.
+
 ## Não encontrado e progresso
 
 Use **Não encontrei** ao lado do bem e confirme. Isso grava o resultado `NOT_FOUND` no mesmo inventário, com autor e instante da observação. Não muda situação patrimonial, versão, localização ou unidade do bem e não provoca baixa automática. A ausência pode ser consultada nos detalhes do inventário e no relatório de conferências do portal.
@@ -16,7 +24,7 @@ A barra mostra resultados registrados sobre o total esperado. Os números separa
 
 ## Conclusão e sincronização
 
-Ao esvaziar a lista, aparece **Inventário concluído**. Esse splash indica conclusão da coleta local e orienta sincronizar. O app guarda um comando de conclusão durável e o WorkManager envia as conferências/ausências, as fotos e, por último, solicita a conclusão no servidor. Uma sala sem bens esperados também pode ser concluída.
+Ao esvaziar a lista, o app avisa e mantém a sessão aberta para bens extras. Ao tocar em **Concluir inventário**, o app guarda um comando de conclusão durável e o WorkManager envia as conferências/ausências, as fotos e, por último, solicita a conclusão no servidor. Uma sala sem bens esperados também pode ser concluída.
 
 A tela distingue coleta concluída de **Inventário concluído e sincronizado**. Fotos pendentes ou em erro e conflitos bloqueiam a conclusão remota. Revise **Pendências**, retome envios quando apropriado e aguarde a confirmação. O servidor verifica que todos os IDs esperados têm resultado antes de aceitar `complete`. Se a resposta se perder, reenviar a conclusão não duplica resultados. A lista e a fila continuam separadas por conta e endereço de API.
 

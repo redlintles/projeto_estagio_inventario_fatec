@@ -24,8 +24,9 @@ Consulta lê ativos, localizações, unidades, inventários, divergências, indi
 | POST `/reservations/:id/complete` | Confirmar envio realizado, com expectedVersion                                            |
 | POST `/reservations/:id/cancel`   | Cancelar e reiniciar prazo, com expectedVersion                                           |
 | POST `/write-offs`                | `{assets:[{id,expectedVersion}],justification}`                                           |
-| GET/POST `/locations`             | Listar ou criar localização                                                               |
-| PATCH `/locations/:id`            | Alterar descrição, prédio, andar, observação ou active                                    |
+| GET/POST `/locations`             | Listar ou criar localização (sala); `unitId` de unidade ativa é obrigatório               |
+| PATCH `/locations/:id`            | Alterar código, unidade, descrição, prédio, andar, observação ou active                   |
+| DELETE `/locations/:id`           | Excluir sala sem histórico; com bens, inventários, divergências ou lotes retorna 409      |
 | GET/POST `/units`                 | Listar ou criar unidade                                                                   |
 | PATCH `/units/:id`                | Alterar nome, e-mail ou active                                                            |
 | GET/POST `/users`                 | Listar sem hash ou cadastrar usuário                                                      |

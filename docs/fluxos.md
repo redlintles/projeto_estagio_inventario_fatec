@@ -2,10 +2,10 @@
 
 ## Implantação da base
 
-1. Criar administrador, localizações e unidades.
+1. Criar administrador e unidades; depois cadastrar as salas em Localizações, cada uma vinculada à sua unidade (o código da sala é único dentro da unidade).
 2. Conferir o modelo institucional e escolher a unidade cadastrada à qual a planilha pertence.
 3. Selecionar o arquivo para importar automaticamente os novos bens válidos. Corrigir linhas inválidas e resolver somente os conflitos, salvando as escolhas.
-4. Usar os filtros e a seleção em lote de Ativos para preencher unidades/localizações ausentes; depois conferir a situação física em inventário.
+4. Fazer o inventário inicial pelo app em cada sala: como os bens importados não têm localização, a lista esperada começa vazia e cada bem lido e confirmado passa a constar na sala. A seleção em lote de Ativos continua disponível para preencher unidades/localizações quando a sala já é conhecida.
 
 Uma importação não remove ativos ausentes do arquivo. O número patrimonial identifica o registro na reimportação. Mudanças nesse identificador exigem atenção: um patrimônio diferente será tratado como outro ativo.
 
