@@ -8,8 +8,8 @@ uploads/
 .gradle/
 local.properties
 **/build/
-*.apk
 *.aab
+*-debug.apk
 
 *.tsbuildinfo
 
