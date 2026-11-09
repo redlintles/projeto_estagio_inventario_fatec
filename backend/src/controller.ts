@@ -15,6 +15,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -35,6 +36,7 @@ import { z } from "zod";
 import { AuthService, Actor, Roles } from "./auth/auth";
 import { AssetsService } from "./assets/assets.service";
 import { InventoryService } from "./inventory/inventory.service";
+import { LocationsService } from "./locations/locations.service";
 import { ImportsService } from "./imports/imports.service";
 import { FilesService } from "./files/files.service";
 import { JobsService } from "./notifications/jobs.service";
@@ -64,6 +66,8 @@ export class ApiController {
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(AssetsService) private readonly assets: AssetsService,
     @Inject(InventoryService) private readonly inventory: InventoryService,
+    @Inject(LocationsService)
+    private readonly locationsService: LocationsService,
     @Inject(ImportsService) private readonly imports: ImportsService,
     @Inject(FilesService) private readonly files: FilesService,
     @Inject(JobsService) private readonly jobs: JobsService,
@@ -360,9 +364,7 @@ export class ApiController {
     );
   }
   @Get("locations") @RequirePermissions("locations.view") locations() {
-    return this.db
-      .getRepository(S.LocationSchema)
-      .find({ order: { code: "ASC" } });
+    return this.locationsService.list();
   }
   @Post("locations") @RequirePermissions("locations.manage") location(
     @Body() body: unknown,
@@ -370,18 +372,17 @@ export class ApiController {
     const input = parse(
       z
         .object({
-          code: z.string().min(1).max(50),
-          description: z.string().min(1).max(255),
-          building: z.string().max(100).default(""),
-          floor: z.string().max(50).default(""),
+          code: z.string().trim().min(1).max(50),
+          description: z.string().trim().min(1).max(255),
+          building: z.string().trim().max(100).default(""),
+          floor: z.string().trim().max(50).default(""),
           notes: note,
+          unitId: uuid,
         })
         .strict(),
       body,
     );
-    return this.db
-      .getRepository(S.LocationSchema)
-      .save({ id: randomUUID(), ...input, active: true });
+    return this.locationsService.create(input);
   }
   @Patch("locations/:id")
   @RequirePermissions("locations.manage")
@@ -389,18 +390,23 @@ export class ApiController {
     const input = parse(
       z
         .object({
-          description: z.string().min(1).max(255).optional(),
-          building: z.string().max(100).optional(),
-          floor: z.string().max(50).optional(),
+          code: z.string().trim().min(1).max(50).optional(),
+          description: z.string().trim().min(1).max(255).optional(),
+          building: z.string().trim().max(100).optional(),
+          floor: z.string().trim().max(50).optional(),
           notes: z.string().max(2000).optional(),
+          unitId: uuid.optional(),
           active: z.boolean().optional(),
         })
         .strict(),
       body,
     );
-    return this.db
-      .getRepository(S.LocationSchema)
-      .update(parse(uuid, id), input);
+    return this.locationsService.update(parse(uuid, id), input);
+  }
+  @Delete("locations/:id")
+  @RequirePermissions("locations.manage")
+  deleteLocation(@Param("id") id: string) {
+    return this.locationsService.remove(parse(uuid, id));
   }
   @Get("units") @RequirePermissions("units.view") units() {
     return this.db.getRepository(S.UnitSchema).find({ order: { name: "ASC" } });

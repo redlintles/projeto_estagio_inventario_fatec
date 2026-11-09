@@ -23,11 +23,13 @@ export const LocationSchema = new EntitySchema<M.Location>({
   tableName: "locations",
   columns: {
     id,
-    code: { ...text, unique: true },
+    // Unicidade por unidade garantida pelos índices da migration LocationUnit.
+    code: text,
     description: text,
     building: text,
     floor: text,
     notes: text,
+    unitId: { type: "uuid", nullable: true },
     active: { type: Boolean, default: true },
   },
 });

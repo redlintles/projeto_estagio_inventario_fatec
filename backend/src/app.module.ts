@@ -6,6 +6,7 @@ import { dataSource } from "./data-source";
 import { AuthService, AuthGuard } from "./auth/auth";
 import { AssetsService } from "./assets/assets.service";
 import { InventoryService } from "./inventory/inventory.service";
+import { LocationsService } from "./locations/locations.service";
 import { ImportsService } from "./imports/imports.service";
 import { FilesService } from "./files/files.service";
 import { JobsService } from "./notifications/jobs.service";
@@ -19,6 +20,7 @@ import { ErrorsFilter } from "./errors";
     UsersService,
     AssetsService,
     InventoryService,
+    LocationsService,
     ImportsService,
     FilesService,
     JobsService,

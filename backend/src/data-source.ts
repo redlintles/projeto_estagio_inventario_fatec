@@ -1,4 +1,5 @@
 import { InventoryProgress1786000000000 } from "./persistence/inventory-progress";
+import { LocationUnit1787000000000 } from "./persistence/location-unit";
 import { BatchRedo1785000000000 } from "./persistence/batch-redo";
 import "reflect-metadata";
 import "dotenv/config";
@@ -21,6 +22,7 @@ export const dataSource = new DataSource({
     UserPermissions1784000000000,
     BatchRedo1785000000000,
     InventoryProgress1786000000000,
+    LocationUnit1787000000000,
   ],
   synchronize: false,
   logging: false,

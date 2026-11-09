@@ -1,4 +1,6 @@
 import { InventoryProgress1786000000000 } from "../src/persistence/inventory-progress";
+import { LocationUnit1787000000000 } from "../src/persistence/location-unit";
+import { LocationsService } from "../src/locations/locations.service";
 import { BatchRedo1785000000000 } from "../src/persistence/batch-redo";
 import { BatchHistory1783000000000 } from "../src/persistence/batch-history";
 import { ReportsService } from "../src/reports/reports";
@@ -80,6 +82,7 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
         Initial1780000000000,
         RealTemplate1781000000000,
         AssetUnit1782000000000,
+        LocationUnit1787000000000,
       ],
       synchronize: false,
     });
@@ -1198,5 +1201,73 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
       spy.mockRestore();
       delete process.env.SMTP_HOST;
     }
+  });
+  it("vincula salas a unidades, edita código e só exclui cadastro sem histórico", async () => {
+    const service = new LocationsService(db);
+    await expect(
+      service.create({
+        code: "S-101",
+        description: "Sala 101",
+        building: "",
+        floor: "",
+        notes: "",
+        unitId: randomUUID(),
+      }),
+    ).rejects.toThrow("unidade ativa");
+    const room = await service.create({
+      code: "S-101",
+      description: "Sala 101",
+      building: "Bloco A",
+      floor: "1",
+      notes: "",
+      unitId,
+    });
+    expect(room.unitId).toBe(unitId);
+    await expect(
+      service.create({ ...room, code: "S-101", unitId }),
+    ).rejects.toThrow("Já existe");
+    const edited = await service.update(room.id, {
+      code: "S-102",
+      description: "Sala 102",
+    });
+    expect(edited.code).toBe("S-102");
+    // Inventário inicial: sala sem bens esperados aceita leituras e atribui a localização.
+    const asset = await create("initial-inventory");
+    expect(asset.locationId).toBeNull();
+    const session = await inventory.start(room.id, actor);
+    expect(session.expectedIds).toEqual([]);
+    await inventory.onlineScan(
+      session.id,
+      {
+        assetId: asset.id,
+        expectedVersion: asset.version,
+        observedAt: new Date().toISOString(),
+      },
+      actor,
+    );
+    expect(
+      (await db.getRepository(AssetSchema).findOneByOrFail({ id: asset.id }))
+        .locationId,
+    ).toBe(room.id);
+    await expect(service.update(room.id, { active: false })).rejects.toThrow(
+      "inventário em andamento",
+    );
+    expect((await inventory.complete(session.id, actor)).status).toBe("CLOSED");
+    await expect(service.remove(room.id)).rejects.toThrow("Inative-a");
+    const unused = await service.create({
+      code: "S-999",
+      description: "Cadastro errado",
+      building: "",
+      floor: "",
+      notes: "",
+      unitId,
+    });
+    expect(await service.remove(unused.id)).toEqual({
+      id: unused.id,
+      deleted: true,
+    });
+    expect(
+      await db.getRepository(LocationSchema).existsBy({ id: unused.id }),
+    ).toBe(false);
   });
 });

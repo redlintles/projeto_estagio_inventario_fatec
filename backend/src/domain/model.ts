@@ -18,6 +18,7 @@ export interface Location {
   building: string;
   floor: string;
   notes: string;
+  unitId: string | null;
   active: boolean;
 }
 export interface Unit {
