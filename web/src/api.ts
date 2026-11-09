@@ -33,7 +33,13 @@ export interface Location {
   building: string;
   floor: string;
   notes: string;
+  unitId: string | null;
   active: boolean;
+}
+/** Identifica a sala com código, descrição e unidade, evitando ambiguidades entre unidades. */
+export function locationLabel(location: Location, units: Unit[]) {
+  const unit = units.find((u) => u.id === location.unitId);
+  return `${location.code} · ${location.description}${unit ? ` — ${unit.name}` : ""}`;
 }
 export interface Unit {
   id: string;

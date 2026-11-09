@@ -157,7 +157,11 @@ export function normalizePermissions(input: Permission[]): Permission[] {
       result.add("assets.view");
     }
   }
-  if (result.has("locations.manage")) result.add("locations.view");
+  if (result.has("locations.manage")) {
+    result.add("locations.view");
+    // Cada sala pertence a uma unidade: quem cadastra salas precisa consultá-las.
+    result.add("units.view");
+  }
   if (result.has("units.manage")) result.add("units.view");
   if (result.has("imports.manage")) result.add("assets.view");
   if (

@@ -8,6 +8,7 @@ export function Inventories({ state }: { state: AppState }) {
     busy,
     assets,
     locations,
+    units,
     inventories,
     inventory,
     setInventory,
@@ -45,7 +46,7 @@ export function Inventories({ state }: { state: AppState }) {
                     .filter((l) => l.active)
                     .map((l) => (
                       <option key={l.id} value={l.id}>
-                        {l.description}
+                        {A.locationLabel(l, units)}
                       </option>
                     ))}
                 </select>

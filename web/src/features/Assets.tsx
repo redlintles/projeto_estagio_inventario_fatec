@@ -324,7 +324,7 @@ export function Assets({ state }: { state: AppState }) {
                   <option value="none">Sem localização</option>
                   {locations.map((l) => (
                     <option key={l.id} value={l.id}>
-                      {l.description}
+                      {A.locationLabel(l, units)}
                     </option>
                   ))}
                 </select>
@@ -476,7 +476,7 @@ export function Assets({ state }: { state: AppState }) {
                           .filter((l) => l.active)
                           .map((l) => (
                             <option key={l.id} value={l.id}>
-                              {l.code} · {l.description}
+                              {A.locationLabel(l, units)}
                             </option>
                           ))}
                       </select>
@@ -521,6 +521,19 @@ export function Assets({ state }: { state: AppState }) {
                       }, "Localização cadastrada. Aplique-a ao lote selecionado.");
                     }}
                   >
+                    <label>
+                      Unidade da nova localização
+                      <select name="unitId" required defaultValue="">
+                        <option value="">Selecione a unidade</option>
+                        {units
+                          .filter((u) => u.active)
+                          .map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.code} · {u.name}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
                     <label>
                       Código da nova localização
                       <input name="code" maxLength={50} required />
