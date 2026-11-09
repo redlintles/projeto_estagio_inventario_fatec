@@ -192,16 +192,22 @@ export function Inventories({ state }: { state: AppState }) {
                       className="secondary"
                       disabled={busy}
                       onClick={() =>
-                        void run(
-                          async () =>
-                            setInventory(
-                              await A.request<A.Inventory>(
-                                `inventories/${inventory.id}/close`,
-                                token,
-                              ),
+                        void run(async () => {
+                          // POST explícito: sem corpo, request() faria um GET.
+                          await A.request(
+                            `inventories/${inventory.id}/close`,
+                            token,
+                            {},
+                            "POST",
+                          );
+                          // A resposta do close não traz itens; recarrega o detalhe completo.
+                          setInventory(
+                            await A.request<A.Inventory>(
+                              `inventories/${inventory.id}`,
+                              token,
                             ),
-                          "Inventário encerrado. Leituras pendentes no celular não serão aceitas.",
-                        )
+                          );
+                        }, "Inventário encerrado. Leituras pendentes no celular não serão aceitas.")
                       }
                     >
                       Encerrar inventário
