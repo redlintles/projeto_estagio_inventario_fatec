@@ -613,6 +613,10 @@ export class AssetsService {
     return this.db.transaction(async (m) => {
       const asset = await this.locked(m, id, expected);
       requireStatus(asset, ["D"]);
+      if (asset.unitId && asset.unitId === destinationUnitId)
+        throw new BadRequestException(
+          "O bem já pertence a esta unidade. Escolha outra unidade de destino.",
+        );
       if (
         !(await m
           .getRepository(S.UnitSchema)

@@ -1270,4 +1270,33 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
       await db.getRepository(LocationSchema).existsBy({ id: unused.id }),
     ).toBe(false);
   });
+  it("recusa transferir um bem para a unidade à qual ele já pertence", async () => {
+    const asset = await create("same-unit");
+    await db.getRepository(AssetSchema).update(asset.id, { unitId });
+    await db.getRepository(PhotoSchema).save({
+      id: randomUUID(),
+      assetId: asset.id,
+      eventId: null,
+      filename: "teste.jpg",
+      mimeType: "image/jpeg",
+      originalName: "teste.jpg",
+      userId: actor.id,
+      createdAt: new Date(),
+    });
+    await assets.available(asset.id, 1, 3, actor);
+    await expect(assets.reserve(asset.id, 2, unitId, actor)).rejects.toThrow(
+      "já pertence a esta unidade",
+    );
+    const other = randomUUID();
+    await db.getRepository(UnitSchema).save({
+      id: other,
+      code: "OUTRA",
+      name: "Unidade de destino",
+      email: "outra@example.org",
+      active: true,
+    });
+    expect((await assets.reserve(asset.id, 2, other, actor)).status).toBe(
+      "RESERVED",
+    );
+  });
 });
