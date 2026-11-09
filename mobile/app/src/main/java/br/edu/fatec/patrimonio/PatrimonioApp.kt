@@ -61,6 +61,7 @@ fun PatrimonioApp() {
   var cancelInventoryDialog by remember { mutableStateOf(false) }
   var missingAssetId by remember { mutableStateOf<String?>(null) }
   var completionSplash by remember { mutableStateOf(false) }
+  var completeInventoryDialog by remember { mutableStateOf(false) }
   var locationId by rememberSaveable { mutableStateOf("") }
   var code by rememberSaveable { mutableStateOf("") }
   var candidates by remember { mutableStateOf<List<JSONObject>>(emptyList()) }
@@ -265,11 +266,17 @@ fun PatrimonioApp() {
     inventoryOperations.any {
       JSONObject(it.payload).optString("_action") == "CANCEL" && it.state != "DISCARDED"
     }
+  val completeRequested =
+    inventoryOperations.any {
+      JSONObject(it.payload).optString("_action") == "COMPLETE" && it.state != "DISCARDED"
+    }
+  // A coleta não depende da lista esperada: uma sala sem bens localizados (inventário inicial)
+  // ou bens extras encontrados após a lista esvaziar continuam podendo ser registrados.
   val collecting =
     currentInventory?.optString("status") == "OPEN" &&
       currentInventory.has("items") &&
       !cancelRequested &&
-      progress.remaining.isNotEmpty()
+      !completeRequested
   val canManageInventory =
     session.can("inventories.manage") &&
       (currentInventory?.optString("userId") == session.userId || session.role == "ADMIN")
@@ -277,24 +284,56 @@ fun PatrimonioApp() {
     if (logged)
       store.cache("active-inventory", JSONArray().put(JSONObject().put("id", inventoryId)))
   }
+  // Ao registrar o último bem esperado, avisa uma vez; a conclusão é sempre um comando explícito,
+  // para que bens extras da sala ainda possam ser lidos.
   LaunchedEffect(inventoryId, refresh, currentInventory?.optString("status")) {
     if (
       logged &&
         currentInventory?.optString("status") == "OPEN" &&
         currentInventory.has("items") &&
+        !progress.initial &&
         progress.remaining.isEmpty() &&
         !cancelRequested &&
-        canManageInventory
+        !completeRequested &&
+        canManageInventory &&
+        store.snapshot("completion-$inventoryId").length() == 0
     ) {
-      store.queueInventoryAction(session.userId, inventoryId, "COMPLETE")
-      val acknowledged = store.snapshot("completion-$inventoryId").length() > 0
-      if (!acknowledged) {
-        completionSplash = true
-        store.cache("completion-$inventoryId", JSONArray().put(JSONObject().put("shown", true)))
-      }
-      SyncWorker.schedule(context)
+      completionSplash = true
+      store.cache("completion-$inventoryId", JSONArray().put(JSONObject().put("shown", true)))
     }
   }
+  fun completeInventory() {
+    store.queueInventoryAction(session.userId, inventoryId, "COMPLETE")
+    completeInventoryDialog = false
+    completionSplash = false
+    selected = null
+    scanner = false
+    photoPath?.let { File(it).delete() }
+    photoPath = null
+    refresh++
+    SyncWorker.schedule(context)
+    message = "Conclusão salva. Sincronize para concluir no servidor e liberar a sala."
+  }
+  if (completeInventoryDialog)
+    AlertDialog(
+      onDismissRequest = { completeInventoryDialog = false },
+      title = { Text("Concluir inventário?") },
+      text = {
+        Text(
+          (if (progress.initial)
+            "Inventário inicial: ${progress.added.size} bens serão registrados nesta sala."
+          else
+            "${progress.found.size} encontrados · ${progress.notFound.size} não encontrados · ${progress.added.size} adicionados à sala.") +
+            " Depois de concluir, novas leituras nesta sala exigem outro inventário."
+        )
+      },
+      confirmButton = {
+        TextButton(onClick = { completeInventory() }) { Text("Concluir inventário") }
+      },
+      dismissButton = {
+        TextButton(onClick = { completeInventoryDialog = false }) { Text("Continuar lendo") }
+      },
+    )
   if (cancelInventoryDialog)
     AlertDialog(
       onDismissRequest = { cancelInventoryDialog = false },
@@ -379,28 +418,18 @@ fun PatrimonioApp() {
           horizontalAlignment = Alignment.CenterHorizontally,
         ) {
           Text("✓", style = MaterialTheme.typography.displayLarge)
-          Text("Inventário concluído", style = MaterialTheme.typography.headlineLarge)
+          Text("Lista esperada concluída", style = MaterialTheme.typography.headlineLarge)
           Text(
             "${progress.found.size} encontrados · ${progress.notFound.size} não encontrados · ${progress.total} esperados"
           )
           Text(
-            if (
-              inventoryOperations.any {
-                JSONObject(it.payload).optString("_action") == "COMPLETE" && it.state == "SYNCED"
-              }
-            )
-              "Dados sincronizados com o servidor."
-            else
-              "A coleta local terminou. Sincronize os dados com o servidor e confira a confirmação de envio, inclusive das fotos."
+            "Todos os bens esperados têm resultado. Se houver outros bens nesta sala, continue lendo para registrá-los aqui; depois conclua o inventário e sincronize."
           )
-          Button(
-            onClick = {
-              completionSplash = false
-              SyncWorker.schedule(context)
-              refresh++
-            }
-          ) {
-            Text("Sincronizar e acompanhar")
+          Button(onClick = { completeInventory() }, enabled = canManageInventory) {
+            Text("Concluir inventário")
+          }
+          OutlinedButton(onClick = { completionSplash = false }) {
+            Text("Continuar lendo bens da sala")
           }
         }
       }
@@ -769,7 +798,7 @@ fun PatrimonioApp() {
                   "Localização",
                   locations
                     .filter { it.optBoolean("active") }
-                    .map { it.getString("id") to it.getString("description") },
+                    .map { it.getString("id") to locationLabel(it, units) },
                   locationId,
                 ) {
                   photoPath?.let { path -> File(path).delete() }
@@ -846,9 +875,10 @@ fun PatrimonioApp() {
                 inventoryOperations,
                 locations
                   .find { it.optString("id") == currentInventory.optString("locationId") }
-                  ?.optString("description") ?: "Localização",
+                  ?.let { locationLabel(it, units) } ?: "Localização",
                 canManageInventory,
                 busy,
+                onComplete = { completeInventoryDialog = true },
                 onCancel = { cancelInventoryDialog = true },
                 onSync = {
                   SyncWorker.schedule(context)
@@ -900,6 +930,8 @@ fun PatrimonioApp() {
               }
               if (tab == "Inventário" && inventoryId.isBlank())
                 Text("Selecione um inventário aberto antes de iniciar a leitura.")
+              else if (tab == "Inventário" && currentInventory != null && completeRequested)
+                Text("Conclusão solicitada: novas leituras exigem outro inventário.")
             }
             if (
               tab == "Inventário" &&
@@ -969,10 +1001,24 @@ fun PatrimonioApp() {
                         session.can("inventories.manage") &&
                         canCollect(asset.optString("status"))
                     ) {
-                      val mismatch = asset.optString("locationId") != locationId
-                      if (mismatch)
+                      val registeredLocation = asset.optString("locationId").takeIf { it.isNotBlank() && it != "null" }
+                      val room = locations.find { it.optString("id") == locationId }
+                      when {
+                        registeredLocation == null ->
+                          Text(
+                            "Este bem ainda não tem localização registrada. Ao confirmar a conferência, ele passa a constar nesta sala."
+                          )
+                        registeredLocation != locationId ->
+                          Text(
+                            "Este bem está registrado em ${locations.find { it.optString("id") == registeredLocation }?.let { locationLabel(it, units) } ?: "outra localização"}. Confirmar a conferência move o cadastro para esta sala; escolha Localização incorreta se ele não deveria estar aqui."
+                          )
+                      }
+                      val assetUnit = asset.optString("unitId").takeIf { it.isNotBlank() && it != "null" }
+                      val roomUnit = room?.optString("unitId")?.takeIf { it.isNotBlank() && it != "null" }
+                      if (assetUnit != null && roomUnit != null && assetUnit != roomUnit)
                         Text(
-                          "A localização encontrada difere do cadastro. Registre uma divergência ou confirme explicitamente a correção."
+                          "Atenção: o bem pertence à unidade ${units.find { it.optString("id") == assetUnit }?.optString("name") ?: "cadastrada"}, mas esta sala é da unidade ${units.find { it.optString("id") == roomUnit }?.optString("name") ?: "cadastrada"}. Confira antes de confirmar.",
+                          color = MaterialTheme.colorScheme.error,
                         )
                       if (!session.can("photos.upload"))
                         Text(

@@ -67,6 +67,10 @@ O Moto G52 conectado por USB recebeu essa atualização e confirmou acesso à AP
 
 A versão 1.3.0 (versionCode 5) mantém a lista de bens esperados e a sessão atual no aparelho, atualiza o progresso ao registrar resultados e aceita Não encontrei. Conclusão e cancelamento são comandos duráveis da fila; a sala só é liberada após confirmação do servidor. Veja o [guia de inventário Android](../docs/inventario-android.md).
 
+## Inventário inicial — versão 1.4
+
+A versão 1.4.0 (versionCode 7) permite inventariar salas cujos bens ainda não têm localização (situação de todos os ativos logo após importar a planilha). A coleta não é mais bloqueada quando a lista esperada está vazia, bens lidos fora da lista são contados como adicionados à sala e a conclusão é um comando explícito (**Concluir inventário**). As salas aparecem com código, descrição e unidade. Requer a API com a migration `LocationUnit1787000000000`. Detalhes no [guia de inventário Android](../docs/inventario-android.md).
+
 ## APK de produção na raiz
 
 O arquivo `../patrimonio-fatec-1.3.1-release.apk` é um APK release assinado com a chave exclusiva deste projeto. Ele permite HTTP na LAN, sem certificado, não permite depuração e é compatível com Android 8 ou superior. O APK debug permanece separado. **Assinaturas diferentes impedem atualizar diretamente o debug com o release:** sincronize e confira todas as pendências antes de qualquer migração, sem apagar dados de coleta não enviados.

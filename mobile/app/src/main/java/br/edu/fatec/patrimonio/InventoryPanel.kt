@@ -16,6 +16,7 @@ fun InventoryPanel(
   locationName: String,
   canManage: Boolean,
   busy: Boolean,
+  onComplete: () -> Unit,
   onCancel: () -> Unit,
   onSync: () -> Unit,
   onNext: () -> Unit,
@@ -30,16 +31,28 @@ fun InventoryPanel(
     }
   val pending = operations.count { it.state !in listOf("SYNCED", "DISCARDED") }
   val cancelled = cancel != null || inventory.optString("status") == "CANCELLED"
-  val completed = !cancelled && progress.remaining.isEmpty()
+  // Concluído = comando explícito do usuário ou sessão já fechada no servidor.
+  val completed = !cancelled && (complete != null || inventory.optString("status") == "CLOSED")
+  val open = inventory.optString("status") == "OPEN"
   SectionCard(
     "Inventário atual · $locationName",
     "Iniciado em ${localDateTime(inventory.optString("startedAt"))}",
   ) {
-    Text("${progress.found.size} encontrados · ${progress.notFound.size} não encontrados")
-    LinearProgressIndicator(progress = { progress.fraction }, modifier = Modifier.fillMaxWidth())
-    Text(
-      "${progress.recorded} de ${progress.total} registrados · ${progress.remaining.size} faltam"
-    )
+    if (progress.initial) {
+      Text("Inventário inicial", style = MaterialTheme.typography.titleMedium)
+      Text(
+        "Nenhum bem tinha esta sala como localização quando o inventário começou. Leia cada bem encontrado e confirme a conferência: ele passará a constar nesta localização."
+      )
+      Text("${progress.added.size} bens registrados nesta sala")
+    } else {
+      Text("${progress.found.size} encontrados · ${progress.notFound.size} não encontrados")
+      LinearProgressIndicator(progress = { progress.fraction }, modifier = Modifier.fillMaxWidth())
+      Text(
+        "${progress.recorded} de ${progress.total} registrados · ${progress.remaining.size} faltam"
+      )
+      if (progress.added.isNotEmpty())
+        Text("${progress.added.size} bens fora da lista adicionados a esta sala")
+    }
     Text(
       when {
         cancelled && cancel?.state == "SYNCED" -> "Cancelamento sincronizado. A sala foi liberada."
@@ -51,8 +64,12 @@ fun InventoryPanel(
         completed && inventory.optString("status") == "CLOSED" && pending == 0 ->
           "Inventário concluído no servidor."
         completed ->
-          "Coleta concluída no aparelho. Sincronize os dados para concluir no servidor e liberar a sala."
+          "Conclusão salva no aparelho. Sincronize os dados para concluir no servidor e liberar a sala."
         inventory.optString("status") == "CLOSED" -> "Inventário encerrado no servidor."
+        open && progress.canComplete ->
+          if (progress.initial)
+            "Quando terminar de ler os bens da sala, toque em Concluir inventário."
+          else "Todos os bens esperados têm resultado. Leia bens extras, se houver, e conclua."
         pending == 0 -> "Todos os resultados salvos até agora estão sincronizados."
         else -> "$pending envios pendentes. Os resultados locais estão preservados."
       },
@@ -65,7 +82,21 @@ fun InventoryPanel(
     Button(onClick = onSync, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
       Text("Sincronizar dados")
     }
-    if (!cancelled && inventory.optString("status") == "OPEN") {
+    if (!cancelled && !completed && open) {
+      Button(
+        onClick = onComplete,
+        enabled = canManage && !busy && progress.canComplete,
+        modifier = Modifier.fillMaxWidth(),
+      ) {
+        Text("Concluir inventário")
+      }
+      if (!progress.canComplete)
+        Text(
+          "Para concluir, registre os ${progress.remaining.size} bens que faltam (leitura ou Não encontrei).",
+          style = MaterialTheme.typography.bodySmall,
+        )
+    }
+    if (!cancelled && !completed && open) {
       OutlinedButton(
         onClick = onCancel,
         enabled = canManage && !busy,
@@ -74,7 +105,7 @@ fun InventoryPanel(
         Text("Cancelar inventário")
       }
     }
-    if (cancelled || completed || inventory.optString("status") != "OPEN") {
+    if (cancelled || completed || !open) {
       OutlinedButton(onClick = onNext, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
         Text("Escolher outro inventário / localização")
       }

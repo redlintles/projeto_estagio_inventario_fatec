@@ -99,7 +99,8 @@ private val helpTopics =
       listOf(
         "Ao iniciar, o app guarda a lista de bens Incorporados e Ativos esperados na sala, com patrimônio e descrição. O total é o snapshot inicial e não muda durante a coleta. A lista diminui depois de confirmar o resultado do bem.",
         "Se não encontrar um bem esperado, toque em Não encontrei ao lado dele e confirme. O registro de ausência funciona offline e não dá baixa nem muda a localização oficial. A barra separa encontrados, não encontrados e quantos ainda faltam registrar.",
-        "Quando todos os bens esperados têm resultado, aparece Inventário concluído. Isso indica conclusão da coleta local. Toque em Sincronizar e acompanhar e aguarde Inventário concluído e sincronizado. Fotos com erro ou conflitos impedem a conclusão no servidor: revise em Pendências.",
+        "Inventário inicial: se nenhum bem tinha a sala como localização, a lista começa vazia e a leitura continua liberada. Cada bem lido e confirmado passa a constar nesta sala. Bens lidos fora da lista também são adicionados à sala.",
+        "Quando todos os bens esperados têm resultado, o app avisa, mas a sessão continua aberta para ler bens extras. Toque em Concluir inventário quando terminar; depois aguarde Inventário concluído e sincronizado. Fotos com erro ou conflitos impedem a conclusão no servidor: revise em Pendências.",
         "Cancelar inventário pede confirmação e guarda um pedido na fila. O servidor preserva os resultados já aceitos; leituras locais ainda não enviadas serão arquivadas. Sem conexão, a sala só é liberada depois de sincronizar o cancelamento.",
         "Por padrão o servidor bloqueia outra sessão na mesma sala. Retome sua sessão aberta ou aguarde o responsável concluir/cancelar e sincronizar. Somente o responsável ou um administrador pode modificar a sessão. O administrador pode desativar a proteção em Parâmetros, assumindo os riscos de trabalho duplicado e conflitos.",
       ),

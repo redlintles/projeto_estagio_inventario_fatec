@@ -20,7 +20,26 @@ class InventoryProgressTest {
     assertEquals(setOf("a"), progress.found)
     assertEquals(setOf("b"), progress.notFound)
     assertEquals(setOf("c"), progress.remaining)
+    assertEquals(setOf("extra"), progress.added)
     assertEquals(2f / 3, progress.fraction)
+    assertFalse(progress.canComplete)
+  }
+
+  @Test
+  fun initialInventoryOfEmptyRoomCountsEveryReadingAsAdded() {
+    val progress =
+      inventoryProgress(
+        emptyList(),
+        mapOf("a" to "CONFIRMED"),
+        listOf(
+          LocalInventoryResult("b", false, "PENDING"),
+          LocalInventoryResult("c", false, "DISCARDED"),
+        ),
+      )
+    assertTrue(progress.initial)
+    assertTrue(progress.canComplete)
+    assertEquals(setOf("a", "b"), progress.added)
+    assertEquals(0, progress.recorded)
   }
 
   @Test
