@@ -43,3 +43,6 @@ producao/
 *.p12
 *.pfx
 *.idsig
+
+# Copias de seguranca do reset: contem banco, fotos e senhas.
+reset-backups

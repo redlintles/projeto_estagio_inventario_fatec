@@ -26,3 +26,6 @@ producao
 
 # APKs de entrega nao fazem parte das imagens do servidor.
 **/*.apk
+
+# Copias de seguranca do reset: contem banco, fotos e senhas.
+reset-backups
