@@ -586,6 +586,18 @@ export class AssetsService {
       return asset;
     });
   }
+  private async reservationNote(m: EntityManager, reservation: Reservation) {
+    const unit = await m
+      .getRepository(S.UnitSchema)
+      .findOneBy({ id: reservation.destinationUnitId });
+    const situation: Record<Reservation["status"], string> = {
+      RESERVED: "aguardando transporte",
+      IN_TRANSIT: "em transporte",
+      COMPLETED: "transferência concluída",
+      CANCELLED: "reserva cancelada",
+    };
+    return `Unidade de destino: ${unit?.name ?? "não encontrada"} · Situação: ${situation[reservation.status]}`;
+  }
   async notify(m: EntityManager, asset: Asset, kind: string) {
     await m.getRepository(S.OutboxSchema).save({
       id: randomUUID(),
@@ -645,7 +657,7 @@ export class AssetsService {
         { ...asset },
         "RESERVE",
         actor,
-        JSON.stringify(reservation),
+        await this.reservationNote(m, reservation),
       );
       return reservation;
     });
@@ -688,7 +700,7 @@ export class AssetsService {
         before,
         action.toUpperCase(),
         actor,
-        JSON.stringify(reservation),
+        await this.reservationNote(m, reservation),
       );
       return reservation;
     });

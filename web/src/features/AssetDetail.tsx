@@ -1,6 +1,7 @@
 import React from "react";
 import * as A from "../api";
 import { AppState } from "../app-state";
+import { MovementDetails, operationLabel } from "./MovementDetails";
 export function AssetDetail({ state }: { state: AppState }) {
   const {
     token,
@@ -328,19 +329,9 @@ export function AssetDetail({ state }: { state: AppState }) {
             <h2>Histórico</h2>
             {detail.movements.map((m) => (
               <article className="timeline" key={m.id}>
-                <strong>{m.operation}</strong>
+                <strong>{operationLabel(m.operation)}</strong>
                 <time>{new Date(m.createdAt).toLocaleString("pt-BR")}</time>
-                <p>{m.notes}</p>
-                <details>
-                  <summary>Dados antes e depois</summary>
-                  <pre>
-                    {JSON.stringify(
-                      { antes: m.before, depois: m.after },
-                      null,
-                      2,
-                    )}
-                  </pre>
-                </details>
+                <MovementDetails movement={m} context={{ locations, units }} />
               </article>
             ))}
           </div>

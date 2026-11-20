@@ -240,6 +240,35 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
       /não encontrada/,
     );
   });
+  it("registra reservas no histórico com texto legível", async () => {
+    const asset = await create("reserve-notes");
+    await db.getRepository(PhotoSchema).save({
+      id: randomUUID(),
+      assetId: asset.id,
+      eventId: null,
+      filename: "x.jpg",
+      mimeType: "image/jpeg",
+      originalName: "x.jpg",
+      userId: actor.id,
+      createdAt: new Date(),
+    });
+    await assets.available(asset.id, 1, 4, actor);
+    const destination = randomUUID();
+    await db.getRepository(UnitSchema).save({
+      id: destination,
+      code: `DEST-${destination.slice(0, 6)}`,
+      name: "Fatec Destino",
+      email: "destino@fatec.local",
+      active: true,
+    });
+    await assets.reserve(asset.id, 2, destination, actor);
+    const [movement] = await db
+      .getRepository(MovementSchema)
+      .findBy({ assetId: asset.id, operation: "RESERVE" });
+    expect(movement.notes).toBe(
+      "Unidade de destino: Fatec Destino · Situação: aguardando transporte",
+    );
+  });
   it("filtra grupo e patrimônio e pagina sem perder registros", async () => {
     await create("page-01");
     await create("page-02");

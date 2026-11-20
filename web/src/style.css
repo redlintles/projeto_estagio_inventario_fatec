@@ -878,3 +878,11 @@ summary {
   display: flex;
   gap: 4px;
 }
+.history-changes {
+  margin-top: 8px;
+  font-size: 13px;
+}
+.history-changes td:first-child {
+  color: #798c96;
+  white-space: nowrap;
+}

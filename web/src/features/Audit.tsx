@@ -1,8 +1,9 @@
 import React from "react";
 import * as A from "../api";
 import { AppState } from "../app-state";
+import { MovementDetails, operationLabel } from "./MovementDetails";
 export function Audit({ state }: { state: AppState }) {
-  const { section, audit } = state;
+  const { section, audit, locations, units } = state;
   return (
     <>
       {section === "audit" && (
@@ -11,14 +12,11 @@ export function Audit({ state }: { state: AppState }) {
           {audit.map((m) => (
             <details key={m.id} className="timeline">
               <summary>
-                {m.operation} · {new Date(m.createdAt).toLocaleString("pt-BR")}
+                {operationLabel(m.operation)} ·{" "}
+                {new Date(m.createdAt).toLocaleString("pt-BR")}
               </summary>
-              <p>
-                Usuário: {m.userId ?? "Processo automático"} · {m.notes}
-              </p>
-              <pre>
-                {JSON.stringify({ antes: m.before, depois: m.after }, null, 2)}
-              </pre>
+              <p>Usuário: {m.userId ?? "Processo automático"}</p>
+              <MovementDetails movement={m} context={{ locations, units }} />
             </details>
           ))}
         </div>
