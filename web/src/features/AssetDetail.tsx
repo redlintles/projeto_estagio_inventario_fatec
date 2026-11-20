@@ -277,20 +277,50 @@ export function AssetDetail({ state }: { state: AppState }) {
           )}
           <div className="panel">
             <h2>Fotos</h2>
-            <div className="actions">
+            {detail.photos.length === 0 && <p>Nenhuma foto anexada.</p>}
+            <div className="photo-list">
               {detail.photos.map((p) => (
-                <button
-                  key={p.id}
-                  className="secondary"
-                  onClick={() =>
-                    void run(
-                      () => A.download(`photos/${p.id}`, token, p.originalName),
-                      "",
-                    )
-                  }
-                >
-                  {p.originalName}
-                </button>
+                <div className="photo-item" key={p.id}>
+                  <button
+                    className="secondary"
+                    title="Baixar foto"
+                    onClick={() =>
+                      void run(
+                        () =>
+                          A.download(`photos/${p.id}`, token, p.originalName),
+                        "",
+                      )
+                    }
+                  >
+                    {p.originalName}
+                  </button>
+                  {can("photos.upload") && detail.status !== "X" && (
+                    <button
+                      className="danger"
+                      disabled={busy}
+                      title="Excluir foto"
+                      onClick={() => {
+                        if (
+                          !window.confirm(
+                            `Excluir a foto "${p.originalName}"? Esta ação fica registrada no histórico.`,
+                          )
+                        )
+                          return;
+                        void run(async () => {
+                          await A.request(
+                            `photos/${p.id}`,
+                            token,
+                            undefined,
+                            "DELETE",
+                          );
+                          await refreshDetail(detail.id);
+                        }, "Foto excluída.");
+                      }}
+                    >
+                      Excluir
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </div>

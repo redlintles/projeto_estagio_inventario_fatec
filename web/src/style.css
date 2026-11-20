@@ -869,3 +869,12 @@ summary {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.photo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.photo-item {
+  display: flex;
+  gap: 4px;
+}

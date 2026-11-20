@@ -176,6 +176,70 @@ suite("Integração PostgreSQL — banco exclusivo de teste", () => {
     expect((await sharp(await readFile(path)).metadata()).format).toBe("jpeg");
     await unlink(path);
   });
+  it("bloqueia foto duplicada no mesmo ativo e permite excluir a foto", async () => {
+    const asset = await create("photo-dup");
+    process.env.UPLOAD_DIR = "/tmp/fatec-photos-test";
+    const files = new FilesService(db, assets);
+    const image = (background: string) =>
+      sharp({ create: { width: 3, height: 3, channels: 3, background } })
+        .jpeg()
+        .toBuffer();
+    const asFile = (buffer: Buffer, name: string) =>
+      ({
+        buffer,
+        size: buffer.length,
+        originalname: name,
+      }) as Express.Multer.File;
+    const red = await image("red");
+    const first = await files.upload(
+      asset.id,
+      undefined,
+      asFile(red, "a.jpg"),
+      actor,
+    );
+    // Painel web: mesma imagem com outro nome é recusada.
+    await expect(
+      files.upload(asset.id, undefined, asFile(red, "copia.jpg"), actor),
+    ).rejects.toThrow(/já está anexada/);
+    // App (com uploadId novo): idempotente, devolve a foto existente.
+    const fromApp = await files.upload(
+      asset.id,
+      undefined,
+      asFile(red, "foto.jpg"),
+      actor,
+      randomUUID(),
+    );
+    expect(fromApp.id).toBe(first.id);
+    expect(
+      await db.getRepository(PhotoSchema).countBy({ assetId: asset.id }),
+    ).toBe(1);
+    // Imagem diferente é aceita normalmente.
+    const second = await files.upload(
+      asset.id,
+      undefined,
+      asFile(await image("green"), "b.jpg"),
+      actor,
+    );
+    await assets.available(asset.id, 1, 4, actor);
+    const { path } = await files.get(first.id);
+    await files.remove(first.id, actor);
+    expect(
+      await db.getRepository(PhotoSchema).countBy({ assetId: asset.id }),
+    ).toBe(1);
+    await expect(readFile(path)).rejects.toThrow();
+    // Ativo disponibilizado não pode ficar sem nenhuma foto.
+    await expect(files.remove(second.id, actor)).rejects.toThrow(
+      /ao menos uma foto/,
+    );
+    const history = await db
+      .getRepository(MovementSchema)
+      .findBy({ assetId: asset.id, operation: "PHOTO_DELETE" });
+    expect(history).toHaveLength(1);
+    expect(history[0].notes).toBe("Foto removida: a.jpg");
+    await expect(files.remove(randomUUID(), actor)).rejects.toThrow(
+      /não encontrada/,
+    );
+  });
   it("filtra grupo e patrimônio e pagina sem perder registros", async () => {
     await create("page-01");
     await create("page-02");

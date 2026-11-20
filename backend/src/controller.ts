@@ -746,6 +746,11 @@ export class ApiController {
       uploadId ? parse(uuid, uploadId) : undefined,
     );
   }
+  @Delete("photos/:id")
+  @RequirePermissions("photos.upload")
+  photoDelete(@Param("id") id: string, @Req() request: AuthRequest) {
+    return this.files.remove(parse(uuid, id), request.user);
+  }
   @Get("photos/:id") @RequirePermissions("assets.view") async photoGet(
     @Param("id") id: string,
     @Res() res: Response,

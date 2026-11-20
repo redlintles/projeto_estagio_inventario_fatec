@@ -5,7 +5,7 @@ import {
   NotFoundException,
   ConflictException,
 } from "@nestjs/common";
-import { DataSource } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 import { mkdir, writeFile, unlink, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { randomUUID, createHash } from "node:crypto";
@@ -14,6 +14,8 @@ import sharp from "sharp";
 import { basename } from "node:path";
 import { Actor } from "../auth/auth";
 import { AssetsService } from "../assets/assets.service";
+const sha256 = (buffer: Buffer) =>
+  createHash("sha256").update(buffer).digest("hex");
 @Injectable()
 export class FilesService {
   constructor(
@@ -70,9 +72,7 @@ export class FilesService {
           const stored = await readFile(
             resolve(this.root(), existing.filename),
           );
-          const hash = (buffer: Buffer) =>
-            createHash("sha256").update(buffer).digest("hex");
-          if (hash(stored) !== hash(content))
+          if (sha256(stored) !== sha256(content))
             throw new ConflictException(
               "Identificador de foto usado com outro conteúdo.",
             );
@@ -80,6 +80,17 @@ export class FilesService {
         }
         if (asset.status === "X")
           throw new ConflictException("Ativo baixado é somente histórico.");
+        // Impede anexar a mesma imagem duas vezes ao mesmo ativo. O conteúdo é
+        // comparado após a re-codificação, que é determinística para o mesmo arquivo.
+        const duplicate = await this.findSameContent(m, assetId, content);
+        if (duplicate) {
+          // Reenvio do app (com uploadId) é tratado como idempotente para não
+          // travar a fila de sincronização; no painel web o usuário é avisado.
+          if (uploadId) return duplicate;
+          throw new ConflictException(
+            `Esta foto já está anexada a este ativo (${duplicate.originalName}).`,
+          );
+        }
         if (
           eventId &&
           !(await m
@@ -110,7 +121,7 @@ export class FilesService {
           { ...asset },
           "PHOTO",
           actor,
-          `Foto ${id}`,
+          `Foto adicionada: ${photo.originalName}`,
         );
         return photo;
       });
@@ -118,6 +129,61 @@ export class FilesService {
       if (writtenPath) await unlink(writtenPath).catch(() => undefined);
       throw error;
     }
+  }
+  private async findSameContent(
+    m: EntityManager,
+    assetId: string,
+    content: Buffer,
+  ) {
+    const digest = sha256(content);
+    const photos = await m.getRepository(S.PhotoSchema).findBy({ assetId });
+    for (const photo of photos) {
+      const stored = await readFile(resolve(this.root(), photo.filename)).catch(
+        () => null,
+      );
+      if (
+        stored &&
+        stored.length === content.length &&
+        sha256(stored) === digest
+      )
+        return photo;
+    }
+    return null;
+  }
+  async remove(id: string, actor: Actor) {
+    const reference = await this.db
+      .getRepository(S.PhotoSchema)
+      .findOneBy({ id });
+    if (!reference) throw new NotFoundException("Foto não encontrada.");
+    const removed = await this.db.transaction(async (m) => {
+      const asset = await this.assets.locked(m, reference.assetId);
+      const photo = await m.getRepository(S.PhotoSchema).findOneBy({ id });
+      if (!photo) throw new NotFoundException("Foto não encontrada.");
+      if (asset.status === "X")
+        throw new ConflictException("Ativo baixado é somente histórico.");
+      // A disponibilização exige foto: depois dela, o ativo não pode ficar sem nenhuma.
+      if (
+        !["I", "A"].includes(asset.status) &&
+        (await m.getRepository(S.PhotoSchema).countBy({ assetId: asset.id })) <=
+          1
+      )
+        throw new ConflictException(
+          "Este ativo já foi disponibilizado e precisa manter ao menos uma foto. Envie a foto correta antes de excluir esta.",
+        );
+      await m.getRepository(S.PhotoSchema).delete({ id });
+      await this.assets.audit(
+        m,
+        asset,
+        { ...asset },
+        "PHOTO_DELETE",
+        actor,
+        `Foto removida: ${photo.originalName}`,
+      );
+      return photo;
+    });
+    // O arquivo só é apagado depois do commit, para não perder a imagem se a transação falhar.
+    await unlink(resolve(this.root(), removed.filename)).catch(() => undefined);
+    return { id: removed.id, removed: true };
   }
   async get(id: string) {
     const photo = await this.db.getRepository(S.PhotoSchema).findOneBy({ id });
